@@ -50,7 +50,6 @@ MODEL = "llama-3.3-70b-versatile"
 # ── HELPER ──────────────────────────────────────────────────
 
 def get_client():
-    # First check .env file, then fall back to sidebar input
     api_key = os.getenv("GROQ_API_KEY") or st.session_state.get("groq_api_key", "")
     if not api_key:
         return None
@@ -121,10 +120,10 @@ def evaluate_output(output):
     score = 0
     breakdown = {}
 
-    days_found = len(re.findall(r'Day \d', output))
-    structure = min(days_found, 5)
-    breakdown["Structure"] = (structure, f"{days_found} day sections found")
-    score += structure
+    sections_found = len(re.findall(r'(Day \d|Step \d)', output))
+    structure = min(sections_found, 5)
+    breakdown["Structure"] = (structure, f"{sections_found} sections found")
+    
 
     urls_found = len(re.findall(r'https?://', output))
     depth = min(urls_found + 1, 5)
@@ -255,12 +254,12 @@ with tab1:
     if run_btn:
         st.session_state.just_generated = True
         st.session_state.loaded_task = ""
-        if not st.session_state.get("groq_api_key", ""):
+        client = get_client()
+        if not client:
             st.error("Enter your Groq API key in the sidebar first.")
         elif not task.strip():
             st.error("Please enter a topic.")
         else:
-            client = get_client()
 
             # Single agent
             with st.spinner("Running single agent baseline..."):
