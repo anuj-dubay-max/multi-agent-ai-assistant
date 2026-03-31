@@ -50,10 +50,16 @@ MODEL = "llama-3.3-70b-versatile"
 # ── HELPER ──────────────────────────────────────────────────
 
 def get_client():
-    api_key = os.getenv("GROQ_API_KEY") or st.session_state.get("groq_api_key", "")
+    # Works both locally (.env) and on Streamlit Cloud (secrets)
+    api_key = (
+        os.getenv("GROQ_API_KEY") or
+        st.secrets.get("GROQ_API_KEY", "") or
+        st.session_state.get("groq_api_key", "")
+    )
     if not api_key:
         return None
     return Groq(api_key=api_key)
+
 
 def call_llm(client, system_prompt, user_message):
     response = client.chat.completions.create(
