@@ -77,13 +77,18 @@ def call_llm(client, system_prompt, user_message):
 
 def planner_agent(client, task):
     return call_llm(client,
-        """You are a Planner AI. Be concise.
-Break the task into steps. Max 5 steps.
-Format EXACTLY like:
-Step 1: [Title] - [1 sentence only]
-Step 2: [Title] - [1 sentence only]
+        """You are a technical study planner AI.
+Your job is to create a topic-specific learning roadmap.
+
+Rules:
+- If the topic is technical (e.g. DSA, Python, ML), generate actual subject-wise learning steps.
+- Do NOT give generic productivity advice.
+- Break the topic into exactly 5 learning steps.
+- Format EXACTLY like:
+Step 1: [Topic Name] - [1 sentence only]
+Step 2: [Topic Name] - [1 sentence only]
 No extra text.""",
-        f"Break this into steps: {task}"
+        f"Create a 5-step learning roadmap for: {task}"
     )
     
 
@@ -103,14 +108,18 @@ No long paragraphs. Short and scannable.""",
 
 def reviewer_agent(client, task, detailed):
     return call_llm(client,
-        """You are a Reviewer AI. Be concise.
-Improve the plan WITHOUT making it longer.
-- Fix gaps only
-- Add 1 motivational line at the start
-- Add 2-line summary at the end
-- Do NOT rewrite what is already good
-Return the full improved plan, same length or shorter.""",
-        f"Task: {task}\n\nPlan:\n{detailed}\n\nImprove concisely."
+        """You are a technical reviewer AI.
+Improve the study plan by:
+- fixing missing or weak technical content
+- ensuring each step has a clear learning goal
+- making it beginner-friendly
+- adding a short motivating intro
+- adding a concise summary at the end
+
+Do NOT remove useful detail.
+Do NOT make it generic.
+Return the full improved version.""",
+        f"Task: {task}\n\nPlan:\n{detailed}\n\nImprove this plan."
     )
     
     
@@ -118,13 +127,20 @@ def single_agent(client, task):
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
-            {"role": "system", "content": "You are a helpful AI assistant."},
-            {"role": "user", "content": f"Create a detailed plan for: {task}"},
+            {"role": "system", "content": """You are a technical learning assistant.
+Create a beginner-friendly structured 5-step learning plan.
+For each step include:
+- What to do
+- How to do it
+- One resource
+- One small exercise"""},
+            {"role": "user", "content": f"Create a structured plan for: {task}"},
         ],
         temperature=0.7,
-        max_tokens=800,
+        max_tokens=1500,
     )
     return response.choices[0].message.content
+
 
 # ── SCORING ──────────────────────────────────────────────────
 
@@ -132,30 +148,35 @@ def evaluate_output(output):
     score = 0
     breakdown = {}
 
-    sections_found = len(re.findall(r'(Day \d|Step \d)', output))
+    # 1. Structure
+    sections_found = len(re.findall(r'(Step \d)', output))
     structure = min(sections_found, 5)
-    breakdown["Structure"] = (structure, f"{sections_found} sections found")
-    
+    breakdown["Structure"] = (structure, f"{sections_found} steps found")
+    score += structure
 
+    # 2. Resources
     urls_found = len(re.findall(r'https?://', output))
-    depth = min(urls_found + 1, 5)
-    breakdown["Depth"] = (depth, f"{urls_found} resources found")
-    score += depth
+    resources = min(urls_found, 5)
+    breakdown["Resources"] = (resources, f"{urls_found} links found")
+    score += resources
 
-    completeness = 0
-    if any(w in output.lower() for w in ["motivat", "tip", "remember"]):
-        completeness += 2
-    if any(w in output.lower() for w in ["summary", "conclusion", "overall"]):
-        completeness += 2
-    if any(w in output.lower() for w in ["exercise", "practice", "implement"]):
-        completeness += 1
-    breakdown["Completeness"] = (completeness, "intro + summary + exercises")
-    score += completeness
+    # 3. Exercises
+    exercises = len(re.findall(r'Exercise:', output, re.IGNORECASE))
+    exercise_score = min(exercises, 5)
+    breakdown["Exercises"] = (exercise_score, f"{exercises} exercises found")
+    score += exercise_score
 
-    code_blocks = len(re.findall(r'```', output)) // 2
-    friendly = min(code_blocks + 2, 5)
-    breakdown["Beginner-friendly"] = (friendly, f"{code_blocks} code examples")
-    score += friendly
+    # 4. Beginner-friendliness
+    beginner_terms = ["beginner", "easy", "simple", "basic", "step by step"]
+    beginner_score = min(sum(term in output.lower() for term in beginner_terms), 5)
+    breakdown["Beginner-friendly"] = (beginner_score, "based on language simplicity")
+    score += beginner_score
+
+    # 5. Specificity
+    technical_terms = ["concept", "practice", "implement", "understand", "apply", "build", "learn", "create", "develop", "analyze"]
+    specificity = min(sum(term in output.lower() for term in technical_terms), 5)
+    breakdown["Specificity"] = (specificity, "action-oriented content detected")
+    score += specificity
 
     return score, breakdown
 
