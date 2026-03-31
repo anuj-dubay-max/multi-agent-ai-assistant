@@ -204,7 +204,7 @@ def load_memory():
 
 # ── UI ───────────────────────────────────────────────────────
 
-st.title("AI Study Plan Generator")
+st.title("AI Agentic Task Assistant")
 st.caption("Multi-Agent AI System -- Planner + Executor + Reviewer")
 st.divider()
 
