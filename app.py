@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import streamlit as st
 import json, os, re
 from datetime import datetime
@@ -8,38 +7,203 @@ from dotenv import load_dotenv
 load_dotenv()
 
 st.set_page_config(
-    page_title="AI Study Plan Generator",
-    page_icon="AI",
+    page_title="AI Agentic Task Assistant",
+    page_icon="A",
     layout="wide"
 )
 
 st.markdown("""
 <style>
-.score-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'DM Sans', sans-serif;
 }
-.score-number {
+
+.main-header {
+    font-family: 'Syne', sans-serif;
     font-size: 3rem;
     font-weight: 800;
-    margin: 0;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 0.2rem;
 }
-.agent-box {
-    background: #f8f9fa;
-    border-left: 4px solid #4f46e5;
-    padding: 1rem;
-    border-radius: 0 8px 8px 0;
+
+.main-sub {
+    font-size: 1rem;
+    color: #888;
+    font-weight: 300;
+    margin-bottom: 2rem;
+}
+
+.agent-card {
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
     margin: 0.5rem 0;
+    background: #111;
 }
-.memory-row {
-    background: #f8f9fa;
+
+.agent-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 0.3rem;
+}
+
+.agent-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+}
+
+.score-block {
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.score-block-single {
+    background: #1a0a0a;
+    border: 1px solid #3a1a1a;
+}
+
+.score-block-multi {
+    background: #0a1a0a;
+    border: 1px solid #1a3a1a;
+}
+
+.score-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.score-label {
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #666;
+    margin-top: 0.3rem;
+}
+
+.diff-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem 0;
+}
+
+.diff-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+}
+
+.bar-container {
+    background: #1a1a1a;
     border-radius: 8px;
+    height: 8px;
+    width: 100%;
+    margin: 0.3rem 0 0.8rem 0;
+    overflow: hidden;
+}
+
+.bar-fill-single {
+    height: 100%;
+    border-radius: 8px;
+    background: #e05252;
+    transition: width 0.5s ease;
+}
+
+.bar-fill-multi {
+    height: 100%;
+    border-radius: 8px;
+    background: #52c478;
+    transition: width 0.5s ease;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.2rem;
+}
+
+.metric-name {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.metric-val {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.history-item {
+    border: 1px solid #222;
+    border-radius: 10px;
     padding: 0.8rem 1rem;
-    margin: 0.3rem 0;
-    font-size: 0.9rem;
+    margin: 0.4rem 0;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.history-item:hover {
+    border-color: #444;
+}
+
+.pipeline-step {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 0;
+}
+
+.step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.step-dot-done { background: #52c478; }
+.step-dot-active { background: #f5a623; animation: pulse 1s infinite; }
+.step-dot-pending { background: #333; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.output-section {
+    border: 1px solid #1f1f1f;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 0.8rem 0;
+    background: #0d0d0d;
+}
+
+.output-tag {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 0.8rem;
+}
+
+.stButton button {
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 1px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -50,16 +214,20 @@ MODEL = "llama-3.3-70b-versatile"
 # ── HELPER ──────────────────────────────────────────────────
 
 def get_client():
-    # Works both locally (.env) and on Streamlit Cloud (secrets)
-    api_key = (
-        os.getenv("GROQ_API_KEY") or
-        st.secrets.get("GROQ_API_KEY", "") or
-        st.session_state.get("groq_api_key", "")
-    )
+    try:
+        api_key = (
+            os.getenv("GROQ_API_KEY") or
+            st.secrets.get("GROQ_API_KEY", "") or
+            st.session_state.get("groq_api_key", "")
+        )
+    except:
+        api_key = (
+            os.getenv("GROQ_API_KEY") or
+            st.session_state.get("groq_api_key", "")
+        )
     if not api_key:
         return None
     return Groq(api_key=api_key)
-
 
 def call_llm(client, system_prompt, user_message):
     response = client.chat.completions.create(
@@ -77,70 +245,52 @@ def call_llm(client, system_prompt, user_message):
 
 def planner_agent(client, task):
     return call_llm(client,
-        """You are a technical study planner AI.
-Your job is to create a topic-specific learning roadmap.
-
-Rules:
-- If the topic is technical (e.g. DSA, Python, ML), generate actual subject-wise learning steps.
-- Do NOT give generic productivity advice.
-- Break the topic into exactly 5 learning steps.
-- Format EXACTLY like:
-Step 1: [Topic Name] - [1 sentence only]
-Step 2: [Topic Name] - [1 sentence only]
-No extra text.""",
-        f"Create a 5-step learning roadmap for: {task}"
+        """You are an expert Planner AI.
+Break ANY task into exactly 5 clear structured steps.
+Format EXACTLY like:
+Step 1: [Title] - [1 sentence description]
+Step 2: [Title] - [1 sentence description]
+No extra text. Just the 5 steps.""",
+        f"Break this task into 5 steps: {task}"
     )
-    
 
 def executor_agent(client, task, plan):
     return call_llm(client,
-        """You are an Executor AI. Be concise.
-For EACH step write exactly:
+        """You are an Executor AI. Be specific and practical.
+For EACH step write:
 **Step X: [Title]**
-- What to do: [1 sentence]
-- How: [2-3 bullet points max]
-- Resource: [1 URL]
-- Exercise: [1 sentence action]
+- Goal: [1 clear sentence]
+- How: [2-3 actionable bullet points]
+- Resource: [1 real URL]
+- Exercise: [1 hands-on action with expected outcome]
 
-No long paragraphs. Short and scannable.""",
-        f"Task: {task}\n\nPlan:\n{plan}\n\nExpand each step concisely."
+Keep it concise and beginner-friendly.""",
+        f"Task: {task}\n\nPlan:\n{plan}\n\nExpand each step."
     )
 
 def reviewer_agent(client, task, detailed):
     return call_llm(client,
-        """You are a technical reviewer AI.
-Improve the study plan by:
-- fixing missing or weak technical content
-- ensuring each step has a clear learning goal
-- making it beginner-friendly
-- adding a short motivating intro
-- adding a concise summary at the end
-
-Do NOT remove useful detail.
-Do NOT make it generic.
-Return the full improved version.""",
-        f"Task: {task}\n\nPlan:\n{detailed}\n\nImprove this plan."
+        """You are a Reviewer AI.
+Improve the plan by:
+- Adding 1 motivational opening line
+- Ensuring each step has a clear, achievable goal
+- Fixing any gaps or missing information
+- Adding a 2-line summary at the end
+Return the COMPLETE improved plan. Do not make it longer than necessary.""",
+        f"Task: {task}\n\nPlan:\n{detailed}\n\nReturn improved version."
     )
-    
-    
+
 def single_agent(client, task):
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
-            {"role": "system", "content": """You are a technical learning assistant.
-Create a beginner-friendly structured 5-step learning plan.
-For each step include:
-- What to do
-- How to do it
-- One resource
-- One small exercise"""},
-            {"role": "user", "content": f"Create a structured plan for: {task}"},
+            {"role": "system", "content": "You are a helpful AI assistant. Complete the given task thoroughly."},
+            {"role": "user", "content": f"Task: {task}"},
         ],
         temperature=0.7,
-        max_tokens=1500,
+        max_tokens=1200,
     )
     return response.choices[0].message.content
-
 
 # ── SCORING ──────────────────────────────────────────────────
 
@@ -148,35 +298,30 @@ def evaluate_output(output):
     score = 0
     breakdown = {}
 
-    # 1. Structure
-    sections_found = len(re.findall(r'(Step \d)', output))
-    structure = min(sections_found, 5)
-    breakdown["Structure"] = (structure, f"{sections_found} steps found")
-    score += structure
+    sections = len(re.findall(r'Step \d', output))
+    s = min(sections, 5)
+    breakdown["Structure"] = (s, f"{sections} steps found")
+    score += s
 
-    # 2. Resources
-    urls_found = len(re.findall(r'https?://', output))
-    resources = min(urls_found, 5)
-    breakdown["Resources"] = (resources, f"{urls_found} links found")
-    score += resources
+    urls = len(re.findall(r'https?://', output))
+    r = min(urls, 5)
+    breakdown["Resources"] = (r, f"{urls} links found")
+    score += r
 
-    # 3. Exercises
     exercises = len(re.findall(r'Exercise:', output, re.IGNORECASE))
-    exercise_score = min(exercises, 5)
-    breakdown["Exercises"] = (exercise_score, f"{exercises} exercises found")
-    score += exercise_score
+    e = min(exercises, 5)
+    breakdown["Exercises"] = (e, f"{exercises} exercises found")
+    score += e
 
-    # 4. Beginner-friendliness
-    beginner_terms = ["beginner", "easy", "simple", "basic", "step by step"]
-    beginner_score = min(sum(term in output.lower() for term in beginner_terms), 5)
-    breakdown["Beginner-friendly"] = (beginner_score, "based on language simplicity")
-    score += beginner_score
+    beginner_terms = ["beginner", "easy", "simple", "basic", "step by step", "start with", "first", "introduce"]
+    b = min(sum(t in output.lower() for t in beginner_terms), 5)
+    breakdown["Clarity"] = (b, "beginner-friendly language")
+    score += b
 
-    # 5. Specificity
-    technical_terms = ["concept", "practice", "implement", "understand", "apply", "build", "learn", "create", "develop", "analyze"]
-    specificity = min(sum(term in output.lower() for term in technical_terms), 5)
-    breakdown["Specificity"] = (specificity, "action-oriented content detected")
-    score += specificity
+    action_terms = ["practice", "implement", "build", "create", "learn", "develop", "apply", "understand", "analyze", "review"]
+    a = min(sum(t in output.lower() for t in action_terms), 5)
+    breakdown["Depth"] = (a, "action-oriented content")
+    score += a
 
     return score, breakdown
 
@@ -202,53 +347,65 @@ def load_memory():
     with open(MEMORY_FILE, "r") as f:
         return json.load(f)
 
-# ── UI ───────────────────────────────────────────────────────
+# ── SIDEBAR ──────────────────────────────────────────────────
 
-st.title("AI Agentic Task Assistant")
-st.caption("Multi-Agent AI System -- Planner + Executor + Reviewer")
-st.divider()
-
-# Sidebar
 with st.sidebar:
     st.markdown("### Setup")
     if os.getenv("GROQ_API_KEY"):
-        st.success("API key loaded from .env")
+        st.success("API key loaded")
     else:
-        if "groq_api_key" not in st.session_state:
-            st.session_state.groq_api_key = ""
-        api_key_input = st.text_input(
-            "Groq API Key",
-            type="password",
-            value=st.session_state.groq_api_key,
-            key="api_key"
-        )
-        if api_key_input:
-            st.session_state.groq_api_key = api_key_input
-            st.success("API key ready")
-        else:
-            st.warning("Enter your Groq API key")
-            
-    st.divider()
-    st.markdown("### Architecture")
-    st.code("""User Input
-    |
-Planner Agent
-    |
-Executor Agent
-    |
-Reviewer Agent
-    |
-Final Output""", language=None)
+        try:
+            if st.secrets.get("GROQ_API_KEY"):
+                st.success("API key loaded")
+        except:
+            if "groq_api_key" not in st.session_state:
+                st.session_state.groq_api_key = ""
+            key_input = st.text_input("Groq API Key", type="password",
+                                      value=st.session_state.groq_api_key, key="api_key")
+            if key_input:
+                st.session_state.groq_api_key = key_input
+                st.success("Key set")
+            else:
+                st.warning("Enter Groq API key")
 
     st.divider()
-    st.markdown("### Session History")
+    st.markdown("### Pipeline")
+    st.markdown("""
+    <div class="pipeline-step">
+        <div class="step-dot step-dot-done"></div>
+        <span style="font-size:0.85rem">User Input</span>
+    </div>
+    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
+    <div class="pipeline-step">
+        <div class="step-dot step-dot-done"></div>
+        <span style="font-size:0.85rem">Planner Agent</span>
+    </div>
+    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
+    <div class="pipeline-step">
+        <div class="step-dot step-dot-done"></div>
+        <span style="font-size:0.85rem">Executor Agent</span>
+    </div>
+    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
+    <div class="pipeline-step">
+        <div class="step-dot step-dot-done"></div>
+        <span style="font-size:0.85rem">Reviewer Agent</span>
+    </div>
+    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
+    <div class="pipeline-step">
+        <div class="step-dot step-dot-done"></div>
+        <span style="font-size:0.85rem">Final Output</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("### History")
     memory = load_memory()
     if memory:
         for i, r in enumerate(reversed(memory[-5:])):
             col_a, col_b = st.columns([4, 1])
             with col_a:
-                st.markdown(f"**{r['task'][:30]}...**")
-                st.caption(f"Single: {r['single_score']}/20  |  Multi: {r['multi_score']}/20")
+                st.markdown(f"**{r['task'][:28]}...**")
+                st.caption(f"S: {r['single_score']}/25  M: {r['multi_score']}/25")
             with col_b:
                 if st.button("Load", key=f"load_{i}"):
                     st.session_state.loaded_task = r['task']
@@ -257,177 +414,183 @@ Final Output""", language=None)
                     st.session_state.loaded_timestamp = r['timestamp']
             st.divider()
     else:
-        st.info("No sessions yet. Run your first plan!")
+        st.caption("No sessions yet.")
 
-# Tabs
-tab1, tab2 = st.tabs(["Generate Plan", "How It Works"])
+# ── MAIN ─────────────────────────────────────────────────────
+
+tab1, tab2 = st.tabs(["Assistant", "How It Works"])
 
 with tab1:
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        # Load task from history if clicked
-        default_task = st.session_state.get("loaded_task", "")
+    st.markdown('<p class="main-header">AI Agentic Task Assistant</p>', unsafe_allow_html=True)
+    st.markdown('<p class="main-sub">Multi-Agent AI System -- Planner + Executor + Reviewer</p>', unsafe_allow_html=True)
 
-        task = st.text_input(
-            "Topic",
-            value=default_task,
-            placeholder="e.g. Learn DSA in 5 days, beginner level, 2 hours per day",
-            label_visibility="collapsed"
-        )
+    default_task = st.session_state.get("loaded_task", "")
+    task = st.text_input("", value=default_task,
+        placeholder="e.g. Learn DSA in 5 days  |  Plan a Python project  |  Create a workout routine",
+        label_visibility="collapsed")
 
-        # Show loaded session scores if history was clicked
-        if st.session_state.get("loaded_task") and not st.session_state.get("just_generated"):
-            st.info(f"Loaded from history -- Single: {st.session_state.get('loaded_single')}/20  |  Multi: {st.session_state.get('loaded_multi')}/20  |  {st.session_state.get('loaded_timestamp')}")
-            if st.button("Clear"):
-                st.session_state.loaded_task = ""
-                st.rerun()
-    with col2:
-        run_btn = st.button("Generate", type="primary", use_container_width=True)
+    col_btn, col_info = st.columns([1, 5])
+    with col_btn:
+        run_btn = st.button("Run Agents", type="primary", use_container_width=True)
+
+    if st.session_state.get("loaded_task") and not st.session_state.get("just_generated"):
+        st.info(f"Loaded: {st.session_state.get('loaded_task')} -- Single: {st.session_state.get('loaded_single')}/25 | Multi: {st.session_state.get('loaded_multi')}/25")
+        if st.button("Clear"):
+            st.session_state.loaded_task = ""
+            st.rerun()
 
     if run_btn:
         st.session_state.just_generated = True
         st.session_state.loaded_task = ""
         client = get_client()
         if not client:
-            st.error("Enter your Groq API key in the sidebar first.")
+            st.error("API key not found. Add it in sidebar.")
         elif not task.strip():
-            st.error("Please enter a topic.")
+            st.error("Enter a task first.")
         else:
+            st.divider()
 
             # Single agent
             with st.spinner("Running single agent baseline..."):
                 single_out = single_agent(client, task)
 
-            # Multi agent
-            st.markdown("### Multi-Agent Pipeline")
-            col_p, col_e, col_r = st.columns(3)
-
-            with col_p:
-                with st.spinner("Planner working..."):
-                    plan = planner_agent(client, task)
-                st.success("Planner done")
-
-            with col_e:
-                with st.spinner("Executor working..."):
-                    detailed = executor_agent(client, task, plan)
-                st.success("Executor done")
-
-            with col_r:
-                with st.spinner("Reviewer working..."):
-                    final = reviewer_agent(client, task, detailed)
-                st.success("Reviewer done")
-
-            # Score
-            single_score, single_bd = evaluate_output(single_out)
-            multi_score,  multi_bd  = evaluate_output(final)
-
-            st.divider()
-            st.markdown("### Score Comparison")
-
-            c1, c2, c3 = st.columns([2, 1, 2])
+            # Multi agent pipeline with live status
+            st.markdown("**Running multi-agent pipeline...**")
+            c1, c2, c3 = st.columns(3)
 
             with c1:
-                label = "LOWER" if single_score < multi_score else "WINNER"
-                color = "#ef4444" if single_score < multi_score else "#16a34a"
+                st.markdown("""<div class="agent-card">
+                    <div class="agent-label">Agent 01</div>
+                    <div class="agent-title">Planner</div>
+                </div>""", unsafe_allow_html=True)
+                with st.spinner(""):
+                    plan = planner_agent(client, task)
+                st.success("Done")
+
+            with c2:
+                st.markdown("""<div class="agent-card">
+                    <div class="agent-label">Agent 02</div>
+                    <div class="agent-title">Executor</div>
+                </div>""", unsafe_allow_html=True)
+                with st.spinner(""):
+                    detailed = executor_agent(client, task, plan)
+                st.success("Done")
+
+            with c3:
+                st.markdown("""<div class="agent-card">
+                    <div class="agent-label">Agent 03</div>
+                    <div class="agent-title">Reviewer</div>
+                </div>""", unsafe_allow_html=True)
+                with st.spinner(""):
+                    final = reviewer_agent(client, task, detailed)
+                st.success("Done")
+
+            # Scores
+            single_score, single_bd = evaluate_output(single_out)
+            multi_score, multi_bd = evaluate_output(final)
+            diff = multi_score - single_score
+
+            st.divider()
+            st.markdown("#### Score Comparison")
+
+            sc1, sc2, sc3 = st.columns([5, 2, 5])
+
+            with sc1:
                 st.markdown(f"""
-                <div class="score-card">
-                    <p style="color:#666;margin:0">Single Agent</p>
-                    <p class="score-number" style="color:{color}">{single_score}</p>
-                    <p style="color:#666;margin:0">out of 20</p>
+                <div class="score-block score-block-single">
+                    <div class="score-label">Single Agent</div>
+                    <div class="score-num" style="color:#e05252">{single_score}</div>
+                    <div class="score-label">out of 25</div>
                 </div>
                 """, unsafe_allow_html=True)
                 st.markdown("")
                 for k, (v, note) in single_bd.items():
-                    st.markdown(f"**{k}:** {v}/5 -- {note}")
+                    pct = int(v / 5 * 100)
+                    st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="bar-container"><div class="bar-fill-single" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
 
-            with c2:
-                diff = multi_score - single_score
-                color = "#16a34a" if diff >= 0 else "#dc2626"
+            with sc2:
+                color = "#52c478" if diff >= 0 else "#e05252"
                 sign = "+" if diff >= 0 else ""
                 st.markdown(f"""
-                <div style="text-align:center;padding-top:2.5rem">
-                    <p style="font-size:2.5rem;font-weight:800;color:{color};margin:0">{sign}{diff}</p>
-                    <p style="color:#666;font-size:0.85rem">difference</p>
+                <div class="diff-block">
+                    <div class="score-label">Difference</div>
+                    <div class="diff-num" style="color:{color}">{sign}{diff}</div>
+                    <div class="score-label">points</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            with c3:
-                label = "WINNER" if multi_score >= single_score else "LOWER"
-                color = "#16a34a" if multi_score >= single_score else "#ef4444"
+            with sc3:
                 st.markdown(f"""
-                <div class="score-card">
-                    <p style="color:#666;margin:0">Multi Agent</p>
-                    <p class="score-number" style="color:{color}">{multi_score}</p>
-                    <p style="color:#666;margin:0">out of 20</p>
+                <div class="score-block score-block-multi">
+                    <div class="score-label">Multi Agent</div>
+                    <div class="score-num" style="color:#52c478">{multi_score}</div>
+                    <div class="score-label">out of 25</div>
                 </div>
                 """, unsafe_allow_html=True)
                 st.markdown("")
                 for k, (v, note) in multi_bd.items():
-                    st.markdown(f"**{k}:** {v}/5 -- {note}")
+                    pct = int(v / 5 * 100)
+                    st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="bar-container"><div class="bar-fill-multi" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
 
             # Outputs
             st.divider()
-            st.markdown("### Full Outputs")
+            st.markdown("#### Outputs")
 
             out1, out2 = st.tabs(["Multi-Agent Output", "Single Agent Output"])
 
             with out1:
-                st.markdown("#### Planner Agent Output")
-                st.markdown(plan)
-                st.divider()
-                st.markdown("#### Final Output (After Reviewer)")
+                with st.expander("Planner Agent Output", expanded=False):
+                    st.markdown(plan)
+                st.markdown('<div class="output-tag">Final Output -- After Reviewer</div>', unsafe_allow_html=True)
                 st.markdown(final)
 
             with out2:
                 st.markdown(single_out)
 
-            # Save
             save_to_memory(task, single_score, multi_score)
-            st.success("Session saved to memory")
+            st.caption("Session saved.")
 
 with tab2:
-    st.markdown("## How This System Works")
+    st.markdown("## How It Works")
     st.markdown("""
-This project demonstrates a **Multi-Agent AI Architecture** where three specialized
-agents collaborate to produce better output than a single agent alone.
+This system demonstrates a **Multi-Agent AI Architecture** where three specialized
+agents collaborate to produce measurably better output than a single agent alone.
 
 ### The 3 Agents
 
-**Planner Agent**
-- Takes your topic as input
-- Breaks it into a structured day-by-day outline
-- Focuses only on planning
+**Agent 01 -- Planner**
+Receives the user task and breaks it into a structured step-by-step plan.
+Focuses only on planning -- no content generation.
 
-**Executor Agent**
-- Takes the Planner output as input
-- Expands each day with concepts, resources, and exercises
-- Focuses only on content generation
+**Agent 02 -- Executor**
+Receives the plan and expands each step with detailed content, resources, and exercises.
+Focuses only on execution -- no planning or reviewing.
 
-**Reviewer Agent**
-- Takes the Executor output as input
-- Improves quality, fills gaps, adds summary
-- Focuses only on quality improvement
-
-### Why Multi-Agent is Better
-
-A single agent tries to plan, execute, and review all in one prompt.
-This produces generic output.
-
-By splitting responsibilities, each agent focuses on one job and builds
-on the previous agent's work -- like a real team.
+**Agent 03 -- Reviewer**
+Receives the full draft and improves it -- fixes gaps, adds motivation, adds summary.
+Focuses only on quality improvement.
 
 ### How Agents Communicate
 
-Agent 1 output becomes Agent 2 input becomes Agent 3 input.
-This is called prompt chaining -- a standard LLM pattern.
+Each agent's output becomes the next agent's input. This is called prompt chaining.
+No complex frameworks -- pure Python and direct API calls.
 
-### Scoring Method
+### Scoring (out of 25)
 
-Scoring uses Python code (not another LLM) by counting:
-- Number of day sections found in the output
-- Number of real URLs and resources mentioned
-- Presence of motivational intro, summary, and exercises
-- Number of code examples included
+Scored by Python code counting objective elements:
+- Structure: number of clear steps found
+- Resources: number of real URLs included
+- Exercises: number of hands-on exercises
+- Clarity: beginner-friendly language detected
+- Depth: action-oriented content density
 
-This makes scoring objective and consistent.
+### Why Multi-Agent Wins
+
+A single agent does planning, execution, and review all in one prompt.
+Each role competes for attention and the output is generic.
+
+Specialized agents stay focused on one job each -- like a real team.
+The result is more structured, more detailed, and more actionable.
     """)
