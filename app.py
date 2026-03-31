@@ -109,10 +109,16 @@ Return the full improved plan, same length or shorter.""",
     
     
 def single_agent(client, task):
-    return call_llm(client,
-        "You are a helpful AI assistant.",
-        f"Create a detailed study plan for: {task}"
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are a helpful AI assistant."},
+            {"role": "user", "content": f"Create a detailed plan for: {task}"},
+        ],
+        temperature=0.7,
+        max_tokens=800,
     )
+    return response.choices[0].message.content
 
 # ── SCORING ──────────────────────────────────────────────────
 
