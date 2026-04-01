@@ -299,7 +299,9 @@ Current plan:
 
 User message: {user_message}
 
-Respond helpfully."""
+The user is continuing the conversation about "{task}".
+Their message "{user_message}" is a follow-up to the above plan.
+Interpret it in context and respond helpfully."""
     )
     
 
@@ -437,8 +439,14 @@ with st.sidebar:
                     st.session_state.loaded_timestamp = r['timestamp']
                     st.session_state.last_task = r['task']
                     st.session_state.ran_once = True
-                    if "last_output" not in st.session_state:
-                        st.session_state.last_output = f"Previously ran: {r['task']} — Single: {r['single_score']}/25, Multi: {r['multi_score']}/25. Run agents again to regenerate full output."
+                    st.session_state.last_output = (
+                        f"**Previously ran:** {r['task']}\n\n"
+                        f"Single Agent Score: {r['single_score']}/25\n\n"
+                        f"Multi Agent Score: {r['multi_score']}/25\n\n"
+                        f"Run agents again to regenerate full output, "
+                        f"or ask a follow-up question below."
+                    )
+                    st.session_state.show_loaded = True
             st.divider()
     else:
         st.caption("No sessions yet.")
@@ -462,11 +470,10 @@ with tab1:
     with col_info:
         st.caption("Press the button to run — Enter key is reserved for the chat below")
 
-    if st.session_state.get("loaded_task") and not st.session_state.get("just_generated"):
-        st.info(f"Loaded: {st.session_state.get('loaded_task')} -- Single: {st.session_state.get('loaded_single')}/25 | Multi: {st.session_state.get('loaded_multi')}/25")
-        if st.button("Clear"):
-            st.session_state.loaded_task = ""
-            st.rerun()
+    if st.session_state.get("show_loaded"):
+        st.info(f"Loaded: **{st.session_state.get('last_task')}** -- Multi score: {st.session_state.get('loaded_multi')}/25")
+        st.caption("Ask a follow-up below or run agents again for fresh output.")
+        st.session_state.show_loaded = False
 
     if run_btn:
         st.session_state.just_generated = True
