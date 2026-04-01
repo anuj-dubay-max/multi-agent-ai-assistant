@@ -279,6 +279,29 @@ Improve the plan by:
 Return the COMPLETE improved plan. Do not make it longer than necessary.""",
         f"Task: {task}\n\nPlan:\n{detailed}\n\nReturn improved version."
     )
+    
+def followup_agent(client, task, previous_output, user_message):
+    return call_llm(client,
+        """You are a helpful AI assistant with context of a task plan.
+The user may want to:
+- Refine or improve the plan
+- Ask a question about the topic
+- Make it harder or easier
+- Focus on a specific part
+- Get more resources
+Read their message and respond naturally.
+If they ask a question, answer it directly.
+If they want to modify the plan, return the complete updated plan.""",
+        f"""Original task: {task}
+
+Current plan:
+{previous_output}
+
+User message: {user_message}
+
+Respond helpfully."""
+    )
+    
 
 def single_agent(client, task):
     response = client.chat.completions.create(
@@ -412,6 +435,10 @@ with st.sidebar:
                     st.session_state.loaded_single = r['single_score']
                     st.session_state.loaded_multi = r['multi_score']
                     st.session_state.loaded_timestamp = r['timestamp']
+                    st.session_state.last_task = r['task']
+                    st.session_state.ran_once = True
+                    if "last_output" not in st.session_state:
+                        st.session_state.last_output = f"Previously ran: {r['task']} — Single: {r['single_score']}/25, Multi: {r['multi_score']}/25. Run agents again to regenerate full output."
             st.divider()
     else:
         st.caption("No sessions yet.")
@@ -432,6 +459,8 @@ with tab1:
     col_btn, col_info = st.columns([1, 5])
     with col_btn:
         run_btn = st.button("Run Agents", type="primary", use_container_width=True)
+    with col_info:
+        st.caption("Press the button to run — Enter key is reserved for the chat below")
 
     if st.session_state.get("loaded_task") and not st.session_state.get("just_generated"):
         st.info(f"Loaded: {st.session_state.get('loaded_task')} -- Single: {st.session_state.get('loaded_single')}/25 | Multi: {st.session_state.get('loaded_multi')}/25")
@@ -551,6 +580,66 @@ with tab1:
 
             save_to_memory(task, single_score, multi_score)
             st.caption("Session saved.")
+            
+            if "chat_history" not in st.session_state:
+                st.session_state.chat_history = []
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": final,
+                "task": task,
+                "score": multi_score
+            })
+            st.session_state.last_output = final
+            st.session_state.last_task = task
+            st.session_state.ran_once = True
+            
+            if st.session_state.get("ran_once"):
+                st.divider()
+                st.markdown("#### Continue the conversation")
+                st.caption("Ask anything: 'make it harder' / 'focus on step 3' / 'explain more' / 'new topic: machine learning'")
+
+                client = get_client()
+                followup = st.chat_input("Reply to refine the output...")
+
+                if followup:
+                    with st.chat_message("user"):
+                        st.markdown(followup)
+
+                    prev_output = st.session_state.get("last_output", "")
+                    prev_task = st.session_state.get("last_task", task)
+
+                    with st.chat_message("assistant"):
+                        if any(w in followup.lower() for w in ["new topic", "start over", "different topic"]):
+                            new_task = followup.replace("new topic:", "").replace("new topic", "").replace("start over", "").replace("different topic:", "").strip()
+                            if new_task:
+                                st.info(f"Starting fresh: {new_task}")
+                                with st.spinner("Running agents..."):
+                                    new_plan = planner_agent(client, new_task)
+                                    new_detailed = executor_agent(client, new_task, new_plan)
+                                    new_final = reviewer_agent(client, new_task, new_detailed)
+                                st.markdown(new_final)
+                                new_score, _ = evaluate_output(new_final)
+                                st.session_state.last_output = new_final
+                                st.session_state.last_task = new_task
+                                st.session_state.chat_history.append({
+                                    "role": "assistant",
+                                    "content": new_final,
+                                    "task": new_task,
+                                    "score": new_score
+                                })
+                        else:
+                            with st.spinner("Updating..."):
+                                updated = followup_agent(client, prev_task, prev_output, followup)
+                            st.markdown(updated)
+                            new_score, _ = evaluate_output(updated)
+                            st.caption(f"Updated score: {new_score}/25")
+                            st.session_state.last_output = updated
+                            st.session_state.chat_history.append({
+                                "role": "assistant",
+                                "content": updated,
+                                "task": prev_task,
+                                "score": new_score
+                            })
 
 with tab2:
     st.markdown("## How It Works")
