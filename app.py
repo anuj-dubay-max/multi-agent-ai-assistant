@@ -16,9 +16,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-}
+html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 
 .main-header {
     font-family: 'Syne', sans-serif;
@@ -28,14 +26,7 @@ html, body, [class*="css"] {
     line-height: 1.1;
     margin-bottom: 0.2rem;
 }
-
-.main-sub {
-    font-size: 1rem;
-    color: #888;
-    font-weight: 300;
-    margin-bottom: 2rem;
-}
-
+.main-sub { font-size: 1rem; color: #888; font-weight: 300; margin-bottom: 2rem; }
 .agent-card {
     border: 1px solid #2a2a2a;
     border-radius: 12px;
@@ -43,7 +34,6 @@ html, body, [class*="css"] {
     margin: 0.5rem 0;
     background: #111;
 }
-
 .agent-label {
     font-family: 'Syne', sans-serif;
     font-size: 0.7rem;
@@ -53,158 +43,25 @@ html, body, [class*="css"] {
     color: #555;
     margin-bottom: 0.3rem;
 }
-
-.agent-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 0.3rem;
-}
-
-.score-block {
-    border-radius: 16px;
-    padding: 2rem;
-    text-align: center;
-}
-
-.score-block-single {
-    background: #1a0a0a;
-    border: 1px solid #3a1a1a;
-}
-
-.score-block-multi {
-    background: #0a1a0a;
-    border: 1px solid #1a3a1a;
-}
-
-.score-num {
-    font-family: 'Syne', sans-serif;
-    font-size: 4rem;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.score-label {
-    font-size: 0.8rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #666;
-    margin-top: 0.3rem;
-}
-
-.diff-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 2rem 0;
-}
-
-.diff-num {
-    font-family: 'Syne', sans-serif;
-    font-size: 3rem;
-    font-weight: 800;
-}
-
-.bar-container {
-    background: #1a1a1a;
-    border-radius: 8px;
-    height: 8px;
-    width: 100%;
-    margin: 0.3rem 0 0.8rem 0;
-    overflow: hidden;
-}
-
-.bar-fill-single {
-    height: 100%;
-    border-radius: 8px;
-    background: #e05252;
-    transition: width 0.5s ease;
-}
-
-.bar-fill-multi {
-    height: 100%;
-    border-radius: 8px;
-    background: #52c478;
-    transition: width 0.5s ease;
-}
-
-.metric-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.2rem;
-}
-
-.metric-name {
-    font-size: 0.8rem;
-    color: #888;
-}
-
-.metric-val {
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.history-item {
-    border: 1px solid #222;
-    border-radius: 10px;
-    padding: 0.8rem 1rem;
-    margin: 0.4rem 0;
-    cursor: pointer;
-    transition: border-color 0.2s;
-}
-
-.history-item:hover {
-    border-color: #444;
-}
-
-.pipeline-step {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.6rem 0;
-}
-
-.step-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
+.agent-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; }
+.score-block { border-radius: 16px; padding: 2rem; text-align: center; }
+.score-block-single { background: #1a0a0a; border: 1px solid #3a1a1a; }
+.score-block-multi { background: #0a1a0a; border: 1px solid #1a3a1a; }
+.score-num { font-family: 'Syne', sans-serif; font-size: 4rem; font-weight: 800; line-height: 1; }
+.score-label { font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-top: 0.3rem; }
+.diff-block { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 2rem 0; }
+.diff-num { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; }
+.bar-container { background: #1a1a1a; border-radius: 8px; height: 8px; width: 100%; margin: 0.3rem 0 0.8rem 0; overflow: hidden; }
+.bar-fill-single { height: 100%; border-radius: 8px; background: #e05252; }
+.bar-fill-multi { height: 100%; border-radius: 8px; background: #52c478; }
+.metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
+.metric-name { font-size: 0.8rem; color: #888; }
+.metric-val { font-size: 0.8rem; font-weight: 600; }
+.pipeline-step { display: flex; align-items: center; gap: 0.8rem; padding: 0.6rem 0; }
+.step-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .step-dot-done { background: #52c478; }
-.step-dot-active { background: #f5a623; animation: pulse 1s infinite; }
-.step-dot-pending { background: #333; }
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-.output-section {
-    border: 1px solid #1f1f1f;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin: 0.8rem 0;
-    background: #0d0d0d;
-}
-
-.output-tag {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.65rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 0.8rem;
-}
-
-.stButton button {
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 700 !important;
-    letter-spacing: 1px !important;
-}
+.output-tag { font-family: 'Syne', sans-serif; font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: #555; margin-bottom: 0.8rem; }
+.stButton button { font-family: 'Syne', sans-serif !important; font-weight: 700 !important; letter-spacing: 1px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -263,7 +120,6 @@ For EACH step write:
 - How: [2-3 actionable bullet points]
 - Resource: [1 real URL]
 - Exercise: [1 hands-on action with expected outcome]
-
 Keep it concise and beginner-friendly.""",
         f"Task: {task}\n\nPlan:\n{plan}\n\nExpand each step."
     )
@@ -279,16 +135,12 @@ Improve the plan by:
 Return the COMPLETE improved plan. Do not make it longer than necessary.""",
         f"Task: {task}\n\nPlan:\n{detailed}\n\nReturn improved version."
     )
-    
+
 def followup_agent(client, task, previous_output, user_message):
     return call_llm(client,
         """You are a helpful AI assistant with context of a task plan.
-The user may want to:
-- Refine or improve the plan
-- Ask a question about the topic
-- Make it harder or easier
-- Focus on a specific part
-- Get more resources
+The user may want to refine the plan, ask a question, make it harder or easier,
+focus on a specific part, or get more resources.
 Read their message and respond naturally.
 If they ask a question, answer it directly.
 If they want to modify the plan, return the complete updated plan.""",
@@ -300,10 +152,8 @@ Current plan:
 User message: {user_message}
 
 The user is continuing the conversation about "{task}".
-Their message "{user_message}" is a follow-up to the above plan.
-Interpret it in context and respond helpfully."""
+Interpret their message in context and respond helpfully."""
     )
-    
 
 def single_agent(client, task):
     response = client.chat.completions.create(
@@ -352,7 +202,7 @@ def evaluate_output(output):
 
 # ── MEMORY ───────────────────────────────────────────────────
 
-def save_to_memory(task, single_score, multi_score):
+def save_to_memory(task, single_score, multi_score, final_output=""):
     memory = []
     if os.path.exists(MEMORY_FILE):
         with open(MEMORY_FILE, "r") as f:
@@ -362,6 +212,7 @@ def save_to_memory(task, single_score, multi_score):
         "task": task,
         "single_score": single_score,
         "multi_score": multi_score,
+        "output": final_output,
     })
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f, indent=2)
@@ -433,20 +284,20 @@ with st.sidebar:
                 st.caption(f"S: {r['single_score']}/25  M: {r['multi_score']}/25")
             with col_b:
                 if st.button("Load", key=f"load_{i}"):
-                    st.session_state.loaded_task = r['task']
-                    st.session_state.loaded_single = r['single_score']
-                    st.session_state.loaded_multi = r['multi_score']
-                    st.session_state.loaded_timestamp = r['timestamp']
                     st.session_state.last_task = r['task']
                     st.session_state.ran_once = True
-                    st.session_state.last_output = (
-                        f"**Previously ran:** {r['task']}\n\n"
-                        f"Single Agent Score: {r['single_score']}/25\n\n"
-                        f"Multi Agent Score: {r['multi_score']}/25\n\n"
-                        f"Run agents again to regenerate full output, "
-                        f"or ask a follow-up question below."
-                    )
+                    st.session_state.loaded_multi = r['multi_score']
+                    st.session_state.loaded_single = r['single_score']
+                    saved_output = r.get("output", "")
+                    if saved_output:
+                        st.session_state.last_output = saved_output
+                        st.session_state.show_full_output = saved_output
+                    else:
+                        st.session_state.last_output = f"No saved output. Run agents again for fresh output."
+                        st.session_state.show_full_output = ""
                     st.session_state.show_loaded = True
+                    # Clear the input box
+                    st.session_state.loaded_task = ""
             st.divider()
     else:
         st.caption("No sessions yet.")
@@ -459,8 +310,16 @@ with tab1:
     st.markdown('<p class="main-header">AI Agentic Task Assistant</p>', unsafe_allow_html=True)
     st.markdown('<p class="main-sub">Multi-Agent AI System -- Planner + Executor + Reviewer</p>', unsafe_allow_html=True)
 
-    default_task = st.session_state.get("loaded_task", "")
-    task = st.text_input("", value=default_task,
+    # Show loaded session banner
+    if st.session_state.get("show_loaded"):
+        st.success(f"Loaded: **{st.session_state.get('last_task')}** -- Multi: {st.session_state.get('loaded_multi')}/25")
+        if st.session_state.get("show_full_output"):
+            with st.expander("Previous Output", expanded=True):
+                st.markdown(st.session_state.get("show_full_output"))
+        st.session_state.show_loaded = False
+        st.session_state.show_full_output = ""
+
+    task = st.text_input("", value="",
         placeholder="e.g. Learn DSA in 5 days  |  Plan a Python project  |  Create a workout routine",
         label_visibility="collapsed")
 
@@ -468,185 +327,175 @@ with tab1:
     with col_btn:
         run_btn = st.button("Run Agents", type="primary", use_container_width=True)
     with col_info:
-        st.caption("Press the button to run — Enter key is reserved for the chat below")
+        st.caption("Press the button to run -- Enter key is for the chat below")
 
-    if st.session_state.get("show_loaded"):
-        st.info(f"Loaded: **{st.session_state.get('last_task')}** -- Multi score: {st.session_state.get('loaded_multi')}/25")
-        st.caption("Ask a follow-up below or run agents again for fresh output.")
-        st.session_state.show_loaded = False
-
+    # ── RUN PIPELINE ─────────────────────────────────────────
     if run_btn:
-        st.session_state.just_generated = True
-        st.session_state.loaded_task = ""
-        client = get_client()
-        if not client:
-            st.error("API key not found. Add it in sidebar.")
-        elif not task.strip():
+        if not task.strip():
             st.error("Enter a task first.")
         else:
-            st.divider()
-
-            # Single agent
-            with st.spinner("Running single agent baseline..."):
-                single_out = single_agent(client, task)
-
-            # Multi agent pipeline with live status
-            st.markdown("**Running multi-agent pipeline...**")
-            c1, c2, c3 = st.columns(3)
-
-            with c1:
-                st.markdown("""<div class="agent-card">
-                    <div class="agent-label">Agent 01</div>
-                    <div class="agent-title">Planner</div>
-                </div>""", unsafe_allow_html=True)
-                with st.spinner(""):
-                    plan = planner_agent(client, task)
-                st.success("Done")
-
-            with c2:
-                st.markdown("""<div class="agent-card">
-                    <div class="agent-label">Agent 02</div>
-                    <div class="agent-title">Executor</div>
-                </div>""", unsafe_allow_html=True)
-                with st.spinner(""):
-                    detailed = executor_agent(client, task, plan)
-                st.success("Done")
-
-            with c3:
-                st.markdown("""<div class="agent-card">
-                    <div class="agent-label">Agent 03</div>
-                    <div class="agent-title">Reviewer</div>
-                </div>""", unsafe_allow_html=True)
-                with st.spinner(""):
-                    final = reviewer_agent(client, task, detailed)
-                st.success("Done")
-
-            # Scores
-            single_score, single_bd = evaluate_output(single_out)
-            multi_score, multi_bd = evaluate_output(final)
-            diff = multi_score - single_score
-
-            st.divider()
-            st.markdown("#### Score Comparison")
-
-            sc1, sc2, sc3 = st.columns([5, 2, 5])
-
-            with sc1:
-                st.markdown(f"""
-                <div class="score-block score-block-single">
-                    <div class="score-label">Single Agent</div>
-                    <div class="score-num" style="color:#e05252">{single_score}</div>
-                    <div class="score-label">out of 25</div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.markdown("")
-                for k, (v, note) in single_bd.items():
-                    pct = int(v / 5 * 100)
-                    st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="bar-container"><div class="bar-fill-single" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
-
-            with sc2:
-                color = "#52c478" if diff >= 0 else "#e05252"
-                sign = "+" if diff >= 0 else ""
-                st.markdown(f"""
-                <div class="diff-block">
-                    <div class="score-label">Difference</div>
-                    <div class="diff-num" style="color:{color}">{sign}{diff}</div>
-                    <div class="score-label">points</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            with sc3:
-                st.markdown(f"""
-                <div class="score-block score-block-multi">
-                    <div class="score-label">Multi Agent</div>
-                    <div class="score-num" style="color:#52c478">{multi_score}</div>
-                    <div class="score-label">out of 25</div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.markdown("")
-                for k, (v, note) in multi_bd.items():
-                    pct = int(v / 5 * 100)
-                    st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="bar-container"><div class="bar-fill-multi" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
-
-            # Outputs
-            st.divider()
-            st.markdown("#### Outputs")
-
-            out1, out2 = st.tabs(["Multi-Agent Output", "Single Agent Output"])
-
-            with out1:
-                with st.expander("Planner Agent Output", expanded=False):
-                    st.markdown(plan)
-                st.markdown('<div class="output-tag">Final Output -- After Reviewer</div>', unsafe_allow_html=True)
-                st.markdown(final)
-
-            with out2:
-                st.markdown(single_out)
-
-            save_to_memory(task, single_score, multi_score)
-            st.caption("Session saved.")
-            
-            if "chat_history" not in st.session_state:
-                st.session_state.chat_history = []
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": final,
-                "task": task,
-                "score": multi_score
-            })
-            st.session_state.last_output = final
-            st.session_state.last_task = task
-            st.session_state.ran_once = True
-            
-            if st.session_state.get("ran_once"):
+            client = get_client()
+            if not client:
+                st.error("API key not found. Add it in sidebar.")
+            else:
                 st.divider()
-                st.markdown("#### Continue the conversation")
-                st.caption("Ask anything: 'make it harder' / 'focus on step 3' / 'explain more' / 'new topic: machine learning'")
 
-                client = get_client()
-                followup = st.chat_input("Reply to refine the output...")
+                with st.spinner("Running single agent baseline..."):
+                    single_out = single_agent(client, task)
 
-                if followup:
-                    with st.chat_message("user"):
-                        st.markdown(followup)
+                st.markdown("**Running multi-agent pipeline...**")
+                c1, c2, c3 = st.columns(3)
 
-                    prev_output = st.session_state.get("last_output", "")
-                    prev_task = st.session_state.get("last_task", task)
+                with c1:
+                    st.markdown("""<div class="agent-card">
+                        <div class="agent-label">Agent 01</div>
+                        <div class="agent-title">Planner</div>
+                    </div>""", unsafe_allow_html=True)
+                    with st.spinner(""):
+                        plan = planner_agent(client, task)
+                    st.success("Done")
 
-                    with st.chat_message("assistant"):
-                        if any(w in followup.lower() for w in ["new topic", "start over", "different topic"]):
-                            new_task = followup.replace("new topic:", "").replace("new topic", "").replace("start over", "").replace("different topic:", "").strip()
-                            if new_task:
-                                st.info(f"Starting fresh: {new_task}")
-                                with st.spinner("Running agents..."):
-                                    new_plan = planner_agent(client, new_task)
-                                    new_detailed = executor_agent(client, new_task, new_plan)
-                                    new_final = reviewer_agent(client, new_task, new_detailed)
-                                st.markdown(new_final)
-                                new_score, _ = evaluate_output(new_final)
-                                st.session_state.last_output = new_final
-                                st.session_state.last_task = new_task
-                                st.session_state.chat_history.append({
-                                    "role": "assistant",
-                                    "content": new_final,
-                                    "task": new_task,
-                                    "score": new_score
-                                })
-                        else:
-                            with st.spinner("Updating..."):
-                                updated = followup_agent(client, prev_task, prev_output, followup)
-                            st.markdown(updated)
-                            new_score, _ = evaluate_output(updated)
-                            st.caption(f"Updated score: {new_score}/25")
-                            st.session_state.last_output = updated
-                            st.session_state.chat_history.append({
-                                "role": "assistant",
-                                "content": updated,
-                                "task": prev_task,
-                                "score": new_score
-                            })
+                with c2:
+                    st.markdown("""<div class="agent-card">
+                        <div class="agent-label">Agent 02</div>
+                        <div class="agent-title">Executor</div>
+                    </div>""", unsafe_allow_html=True)
+                    with st.spinner(""):
+                        detailed = executor_agent(client, task, plan)
+                    st.success("Done")
+
+                with c3:
+                    st.markdown("""<div class="agent-card">
+                        <div class="agent-label">Agent 03</div>
+                        <div class="agent-title">Reviewer</div>
+                    </div>""", unsafe_allow_html=True)
+                    with st.spinner(""):
+                        final = reviewer_agent(client, task, detailed)
+                    st.success("Done")
+
+                single_score, single_bd = evaluate_output(single_out)
+                multi_score, multi_bd = evaluate_output(final)
+                diff = multi_score - single_score
+
+                st.divider()
+                st.markdown("#### Score Comparison")
+
+                sc1, sc2, sc3 = st.columns([5, 2, 5])
+
+                with sc1:
+                    st.markdown(f"""
+                    <div class="score-block score-block-single">
+                        <div class="score-label">Single Agent</div>
+                        <div class="score-num" style="color:#e05252">{single_score}</div>
+                        <div class="score-label">out of 25</div>
+                    </div>""", unsafe_allow_html=True)
+                    st.markdown("")
+                    for k, (v, note) in single_bd.items():
+                        pct = int(v / 5 * 100)
+                        st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="bar-container"><div class="bar-fill-single" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
+
+                with sc2:
+                    color = "#52c478" if diff >= 0 else "#e05252"
+                    sign = "+" if diff >= 0 else ""
+                    st.markdown(f"""
+                    <div class="diff-block">
+                        <div class="score-label">Difference</div>
+                        <div class="diff-num" style="color:{color}">{sign}{diff}</div>
+                        <div class="score-label">points</div>
+                    </div>""", unsafe_allow_html=True)
+
+                with sc3:
+                    st.markdown(f"""
+                    <div class="score-block score-block-multi">
+                        <div class="score-label">Multi Agent</div>
+                        <div class="score-num" style="color:#52c478">{multi_score}</div>
+                        <div class="score-label">out of 25</div>
+                    </div>""", unsafe_allow_html=True)
+                    st.markdown("")
+                    for k, (v, note) in multi_bd.items():
+                        pct = int(v / 5 * 100)
+                        st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="bar-container"><div class="bar-fill-multi" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
+
+                st.divider()
+                st.markdown("#### Outputs")
+                out1, out2 = st.tabs(["Multi-Agent Output", "Single Agent Output"])
+                with out1:
+                    with st.expander("Planner Agent Output", expanded=False):
+                        st.markdown(plan)
+                    st.markdown('<div class="output-tag">Final Output -- After Reviewer</div>', unsafe_allow_html=True)
+                    st.markdown(final)
+                with out2:
+                    st.markdown(single_out)
+
+                save_to_memory(task, single_score, multi_score, final)
+                st.caption("Session saved.")
+
+                # Save to session for follow-up chat
+                if "chat_history" not in st.session_state:
+                    st.session_state.chat_history = []
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": final,
+                    "task": task,
+                    "score": multi_score
+                })
+                st.session_state.last_output = final
+                st.session_state.last_task = task
+                st.session_state.ran_once = True
+
+    # ── FOLLOW-UP CHAT ────────────────────────────────────────
+    # This is OUTSIDE run_btn so it persists across reruns
+    if st.session_state.get("ran_once"):
+        st.divider()
+        st.markdown("#### Continue the conversation")
+        st.caption("Ask anything: 'make it harder' / 'focus on step 3' / 'explain more' / 'new topic: machine learning'")
+
+        client = get_client()
+        followup = st.chat_input("Reply to refine the output...")
+
+        if followup:
+            with st.chat_message("user"):
+                st.markdown(followup)
+
+            prev_output = st.session_state.get("last_output", "")
+            prev_task = st.session_state.get("last_task", "")
+
+            with st.chat_message("assistant"):
+                if any(w in followup.lower() for w in ["new topic", "start over", "different topic"]):
+                    new_task = followup.replace("new topic:", "").replace("new topic", "").replace("start over", "").replace("different topic:", "").strip()
+                    if new_task:
+                        st.info(f"Starting fresh: {new_task}")
+                        with st.spinner("Running agents..."):
+                            new_plan = planner_agent(client, new_task)
+                            new_detailed = executor_agent(client, new_task, new_plan)
+                            new_final = reviewer_agent(client, new_task, new_detailed)
+                        st.markdown(new_final)
+                        new_score, _ = evaluate_output(new_final)
+                        st.session_state.last_output = new_final
+                        st.session_state.last_task = new_task
+                        st.session_state.chat_history.append({
+                            "role": "assistant",
+                            "content": new_final,
+                            "task": new_task,
+                            "score": new_score
+                        })
+                else:
+                    with st.spinner("Updating..."):
+                        updated = followup_agent(client, prev_task, prev_output, followup)
+                    st.markdown(updated)
+                    new_score, _ = evaluate_output(updated)
+                    st.caption(f"Updated score: {new_score}/25")
+                    st.session_state.last_output = updated
+                    if "chat_history" not in st.session_state:
+                        st.session_state.chat_history = []
+                    st.session_state.chat_history.append({
+                        "role": "assistant",
+                        "content": updated,
+                        "task": prev_task,
+                        "score": new_score
+                    })
 
 with tab2:
     st.markdown("## How It Works")
