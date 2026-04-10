@@ -135,6 +135,57 @@ Improve the plan by:
 Return the COMPLETE improved plan. Do not make it longer than necessary.""",
         f"Task: {task}\n\nPlan:\n{detailed}\n\nReturn improved version."
     )
+    
+def critic_agent(client, task, reviewed_output):
+    return call_llm(client,
+        """You are a Critic AI. Your job is to find flaws.
+Be strict. Review the plan and identify:
+1. Any factually incorrect information
+2. Any steps that are vague or unmeasurable
+3. Any missing critical resources
+4. Any unrealistic time estimates
+Then provide a corrected final version.
+Be specific. Don't just say improve — say exactly what to fix.""",
+        f"Task: {task}\n\nPlan to critique:\n{reviewed_output}\n\nProvide critique and corrected version."
+    )
+    
+def run_ablation(client, task):
+    """
+    Runs 4 experiments on the same task.
+    Returns scores for each configuration.
+    This is the ablation study.
+    """
+    results = {}
+
+    # Experiment 1 — Single agent
+    out1 = single_agent(client, task)
+    s1, _ = evaluate_output(out1)
+    results["Single Agent"] = {"output": out1, "score": s1}
+
+    # Experiment 2 — Planner + Executor only (no Reviewer)
+    plan2 = planner_agent(client, task)
+    out2 = executor_agent(client, task, plan2)
+    s2, _ = evaluate_output(out2)
+    results["Planner + Executor"] = {"output": out2, "score": s2}
+
+    # Experiment 3 — Full 3-agent pipeline
+    plan3 = planner_agent(client, task)
+    exec3 = executor_agent(client, task, plan3)
+    out3 = reviewer_agent(client, task, exec3)
+    s3, _ = evaluate_output(out3)
+    results["Planner + Executor + Reviewer"] = {"output": out3, "score": s3}
+
+    # Experiment 4 — Full pipeline + Critic
+    plan4 = planner_agent(client, task)
+    exec4 = executor_agent(client, task, plan4)
+    rev4 = reviewer_agent(client, task, exec4)
+    out4 = critic_agent(client, task, rev4)
+    s4, _ = evaluate_output(out4)
+    results["Full Pipeline + Critic"] = {"output": out4, "score": s4}
+
+    return results
+
+    
 
 def followup_agent(client, task, previous_output, user_message):
     return call_llm(client,
@@ -304,7 +355,7 @@ with st.sidebar:
 
 # ── MAIN ─────────────────────────────────────────────────────
 
-tab1, tab2 = st.tabs(["Assistant", "How It Works"])
+tab1, tab2, tab3 = st.tabs(["Assistant", "Ablation Study", "How It Works"])
 
 with tab1:
     st.markdown('<p class="main-header">AI Agentic Task Assistant</p>', unsafe_allow_html=True)
@@ -498,6 +549,113 @@ with tab1:
                     })
 
 with tab2:
+    st.markdown('<p class="main-header">Ablation Study</p>', unsafe_allow_html=True)
+    st.markdown('<p class="main-sub">Which agent contributes most to output quality?</p>', unsafe_allow_html=True)
+
+    st.markdown("""
+    This experiment runs the same task through 4 different configurations
+    and compares scores to identify each agent's contribution.
+
+    | Configuration | Agents Used |
+    |---|---|
+    | Experiment 1 | Single Agent only |
+    | Experiment 2 | Planner + Executor |
+    | Experiment 3 | Planner + Executor + Reviewer |
+    | Experiment 4 | Planner + Executor + Reviewer + Critic |
+    """)
+
+    st.divider()
+
+    ablation_task = st.text_input("Enter task for ablation study",
+        placeholder="e.g. Learn Python in 7 days",
+        key="ablation_task")
+
+    run_ablation_btn = st.button("Run Ablation Study", type="primary")
+
+    if run_ablation_btn:
+        if not ablation_task.strip():
+            st.error("Enter a task first.")
+        else:
+            client = get_client()
+            if not client:
+                st.error("API key not found.")
+            else:
+                st.info("Running 4 experiments... this takes about 60 seconds.")
+
+                with st.spinner("Running all 4 configurations..."):
+                    results = run_ablation(client, ablation_task)
+
+                st.divider()
+                st.markdown("### Results")
+
+                # Score comparison chart
+                configs = list(results.keys())
+                scores = [results[c]["score"] for c in configs]
+
+                # Show scores as metric cards
+                c1, c2, c3, c4 = st.columns(4)
+                cols = [c1, c2, c3, c4]
+                colors = ["#e05252", "#f5a623", "#4a90d9", "#52c478"]
+
+                for i, (col, config) in enumerate(zip(cols, configs)):
+                    with col:
+                        st.markdown(f"""
+                        <div class="score-block" style="border:1px solid #2a2a2a;background:#111">
+                            <div class="score-label">Exp {i+1}</div>
+                            <div class="score-num" style="color:{colors[i]}">{scores[i]}</div>
+                            <div class="score-label">/ 25</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.caption(config)
+
+                # Improvement analysis
+                st.divider()
+                st.markdown("### Agent Contribution Analysis")
+
+                reviewer_contribution = scores[2] - scores[1]
+                critic_contribution = scores[3] - scores[2]
+                executor_contribution = scores[1] - scores[0]
+
+                a1, a2, a3 = st.columns(3)
+                with a1:
+                    st.metric("Executor adds", f"+{executor_contribution} pts",
+                        delta="vs Single Agent")
+                with a2:
+                    st.metric("Reviewer adds", f"+{reviewer_contribution} pts",
+                        delta="vs Planner+Executor")
+                with a3:
+                    st.metric("Critic adds", f"+{critic_contribution} pts",
+                        delta="vs 3-Agent Pipeline")
+
+                # Finding
+                contributions = {
+                    "Executor": executor_contribution,
+                    "Reviewer": reviewer_contribution,
+                    "Critic": critic_contribution
+                }
+                top_agent = max(contributions, key=contributions.get)
+
+                st.divider()
+                st.success(f"Finding: The {top_agent} agent contributes most to quality improvement (+{contributions[top_agent]} points)")
+                st.caption("Save this result for your report and viva.")
+
+                # Show outputs in expanders
+                st.divider()
+                st.markdown("### Full Outputs")
+                for config, data in results.items():
+                    with st.expander(f"{config} — Score: {data['score']}/25"):
+                        st.markdown(data["output"])
+
+                # Save ablation results to session
+                if "ablation_results" not in st.session_state:
+                    st.session_state.ablation_results = []
+                st.session_state.ablation_results.append({
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "task": ablation_task,
+                    "scores": {c: results[c]["score"] for c in configs}
+                })
+                
+with tab3:
     st.markdown("## How It Works")
     st.markdown("""
 This system demonstrates a **Multi-Agent AI Architecture** where three specialized
