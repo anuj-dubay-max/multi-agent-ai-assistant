@@ -149,42 +149,6 @@ Be specific. Don't just say improve — say exactly what to fix.""",
         f"Task: {task}\n\nPlan to critique:\n{reviewed_output}\n\nProvide critique and corrected version."
     )
     
-def run_ablation(client, task):
-    """
-    Runs 4 experiments on the same task.
-    Returns scores for each configuration.
-    This is the ablation study.
-    """
-    results = {}
-
-    # Experiment 1 — Single agent
-    out1 = single_agent(client, task)
-    s1, _ = evaluate_output(out1)
-    results["Single Agent"] = {"output": out1, "score": s1}
-
-    # Experiment 2 — Planner + Executor only (no Reviewer)
-    plan2 = planner_agent(client, task)
-    out2 = executor_agent(client, task, plan2)
-    s2, _ = evaluate_output(out2)
-    results["Planner + Executor"] = {"output": out2, "score": s2}
-
-    # Experiment 3 — Full 3-agent pipeline
-    plan3 = planner_agent(client, task)
-    exec3 = executor_agent(client, task, plan3)
-    out3 = reviewer_agent(client, task, exec3)
-    s3, _ = evaluate_output(out3)
-    results["Planner + Executor + Reviewer"] = {"output": out3, "score": s3}
-
-    # Experiment 4 — Full pipeline + Critic
-    plan4 = planner_agent(client, task)
-    exec4 = executor_agent(client, task, plan4)
-    rev4 = reviewer_agent(client, task, exec4)
-    out4 = critic_agent(client, task, rev4)
-    s4, _ = evaluate_output(out4)
-    results["Full Pipeline + Critic"] = {"output": out4, "score": s4}
-
-    return results
-
     
 
 def followup_agent(client, task, previous_output, user_message):
@@ -250,6 +214,43 @@ def evaluate_output(output):
     score += a
 
     return score, breakdown
+
+def run_ablation(client, task):
+    """
+    Runs 4 experiments on the same task.
+    Returns scores for each configuration.
+    This is the ablation study.
+    """
+    results = {}
+
+    # Experiment 1 — Single agent
+    out1 = single_agent(client, task)
+    s1, _ = evaluate_output(out1)
+    results["Single Agent"] = {"output": out1, "score": s1}
+
+    # Experiment 2 — Planner + Executor only (no Reviewer)
+    plan2 = planner_agent(client, task)
+    out2 = executor_agent(client, task, plan2)
+    s2, _ = evaluate_output(out2)
+    results["Planner + Executor"] = {"output": out2, "score": s2}
+
+    # Experiment 3 — Full 3-agent pipeline
+    plan3 = planner_agent(client, task)
+    exec3 = executor_agent(client, task, plan3)
+    out3 = reviewer_agent(client, task, exec3)
+    s3, _ = evaluate_output(out3)
+    results["Planner + Executor + Reviewer"] = {"output": out3, "score": s3}
+
+    # Experiment 4 — Full pipeline + Critic
+    plan4 = planner_agent(client, task)
+    exec4 = executor_agent(client, task, plan4)
+    rev4 = reviewer_agent(client, task, exec4)
+    out4 = critic_agent(client, task, rev4)
+    s4, _ = evaluate_output(out4)
+    results["Full Pipeline + Critic"] = {"output": out4, "score": s4}
+
+    return results
+
 
 # ── MEMORY ───────────────────────────────────────────────────
 
