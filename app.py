@@ -87,6 +87,24 @@ def get_client():
         return None
     return Groq(api_key=api_key)
 
+def router_agent(client, task):
+    """
+    Detects what type of task the user wants and returns context
+    that all other agents will use to adapt their behavior.
+    """
+    return call_llm(client,
+        """You are a Task Router AI.
+Analyze the user's request and return ONLY a JSON object like this:
+{
+  "task_type": "one of: learning/code_review/resume/document/creative/planning/analysis/other",
+  "output_format": "one of: step_by_step_plan/code_feedback/resume_feedback/summary/creative_content/structured_plan/analysis_report",
+  "tone": "one of: beginner_friendly/technical/professional/casual",
+  "key_focus": "one sentence describing the main goal"
+}
+Return ONLY the JSON. No explanation.""",
+        f"Analyze this task: {task}"
+    )
+
 def call_llm(client, system_prompt, user_message):
     response = client.chat.completions.create(
         model=MODEL,
@@ -101,10 +119,16 @@ def call_llm(client, system_prompt, user_message):
 
 # ── AGENTS ───────────────────────────────────────────────────
 
-def planner_agent(client, task):
+def planner_agent(client, task, context=""):
     return call_llm(client,
-        """You are an expert Planner AI.
-Break ANY task into exactly 5 clear structured steps.
+        f"""You are an expert Planner AI.
+Analyze the task and break it into exactly 5 clear steps.
+{f"Context: {context}" if context else ""}
+Adapt your output format to match the task type.
+For learning tasks: use Day/Step format
+For code review: use Issue 1, Issue 2 format
+For documents/resumes: use Section 1, Section 2 format
+For creative tasks: use Part 1, Part 2 format
 Format EXACTLY like:
 Step 1: [Title] - [1 sentence description]
 Step 2: [Title] - [1 sentence description]
@@ -112,31 +136,36 @@ No extra text. Just the 5 steps.""",
         f"Break this task into 5 steps: {task}"
     )
 
-def executor_agent(client, task, plan):
+def executor_agent(client, task, plan, context=""):
     return call_llm(client,
-        """You are an Executor AI. Be specific and practical.
-For EACH step write:
-**Step X: [Title]**
-- Goal: [1 clear sentence]
-- How: [2-3 actionable bullet points]
-- Resource: [1 real URL]
-- Exercise: [1 hands-on action with expected outcome]
-Keep it concise and beginner-friendly.""",
-        f"Task: {task}\n\nPlan:\n{plan}\n\nExpand each step."
-    )
-
-def reviewer_agent(client, task, detailed):
-    return call_llm(client,
-        """You are a Reviewer AI.
-Improve the plan by:
-- Adding 1 motivational opening line
-- Ensuring each step has a clear, achievable goal
-- Fixing any gaps or missing information
-- Adding a 2-line summary at the end
-Return the COMPLETE improved plan. Do not make it longer than necessary.""",
-        f"Task: {task}\n\nPlan:\n{detailed}\n\nReturn improved version."
+        f"""You are an Executor AI.
+{f"Task context: {context}" if context else ""}
+Expand EACH step with detailed, specific content.
+Adapt your output to the task type:
+- For learning: include resources and exercises
+- For code review: include specific fixes and examples  
+- For resume/documents: include rewritten sections
+- For creative: include actual content
+- For analysis: include data and reasoning
+Be specific and practical. No generic advice.""",
+        f"Task: {task}\n\nPlan:\n{plan}\n\nExpand each step fully."
     )
     
+
+def reviewer_agent(client, task, detailed, context=""):
+    return call_llm(client,
+        f"""You are a Reviewer AI.
+{f"Task context: {context}" if context else ""}
+Improve the output by:
+- Adding a relevant opening line
+- Ensuring each step is specific to this exact task
+- Fixing gaps or generic content
+- Adding a 2-line summary
+Return the COMPLETE improved output.""",
+        f"Task: {task}\n\nDraft:\n{detailed}\n\nReturn improved version."
+    )
+    
+        
 def critic_agent(client, task, reviewed_output):
     return call_llm(client,
         """You are a Critic AI. Your job is to find flaws.
@@ -373,7 +402,7 @@ with tab1:
         st.session_state.show_full_output = ""
 
     task = st.text_input("", value="",
-        placeholder="e.g. Learn DSA in 5 days  |  Plan a Python project  |  Create a workout routine",
+        placeholder="e.g. Review my Python code  |  Improve my resume  |  Summarize this document  |  Learn DSA in 5 days  |  Plan a marketing strategy",
         label_visibility="collapsed")
 
     col_btn, col_info = st.columns([1, 5])
@@ -395,6 +424,50 @@ with tab1:
 
                 with st.spinner("Running single agent baseline..."):
                     single_out = single_agent(client, task)
+
+                # Detect task type
+                with st.spinner("Detecting task type..."):
+                    try:
+                        import json
+                        raw_context = router_agent(client, task)
+                        clean = raw_context.strip()
+                        if clean.startswith("```"):
+                            clean = re.sub(r'```json|```', '', clean).strip()
+                        context_data = json.loads(clean)
+                        context = f"Task type: {context_data.get('task_type', 'general')}. Output format: {context_data.get('output_format', 'structured')}. Tone: {context_data.get('tone', 'helpful')}. Goal: {context_data.get('key_focus', task)}"
+                        st.caption(f"Detected: {context_data.get('task_type', 'general').replace('_', ' ').title()} task")
+                    except:
+                        context = ""
+
+                st.markdown("**Running multi-agent pipeline...**")
+                c1, c2, c3 = st.columns(3)
+
+                with c1:
+                    st.markdown("""<div class="agent-card">
+                        <div class="agent-label">Agent 01</div>
+                        <div class="agent-title">Planner</div>
+                    </div>""", unsafe_allow_html=True)
+                    with st.spinner(""):
+                        plan = planner_agent(client, task, context)
+                    st.success("Done")
+
+                with c2:
+                    st.markdown("""<div class="agent-card">
+                        <div class="agent-label">Agent 02</div>
+                        <div class="agent-title">Executor</div>
+                    </div>""", unsafe_allow_html=True)
+                    with st.spinner(""):
+                        detailed = executor_agent(client, task, plan, context)
+                    st.success("Done")
+
+                with c3:
+                    st.markdown("""<div class="agent-card">
+                        <div class="agent-label">Agent 03</div>
+                        <div class="agent-title">Reviewer</div>
+                    </div>""", unsafe_allow_html=True)
+                    with st.spinner(""):
+                        final = reviewer_agent(client, task, detailed, context)
+                    st.success("Done")
 
                 st.markdown("**Running multi-agent pipeline...**")
                 c1, c2, c3 = st.columns(3)
