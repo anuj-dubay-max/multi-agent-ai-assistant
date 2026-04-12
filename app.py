@@ -4,6 +4,7 @@ import json, os, re
 from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
+import time
 import plotly.graph_objects as go
 load_dotenv()
 
@@ -246,32 +247,26 @@ def evaluate_output(output):
     return score, breakdown
 
 def run_ablation(client, task):
-    """
-    Runs 4 experiments on the same task.
-    Returns scores for each configuration.
-    This is the ablation study.
-    """
     results = {}
 
-    # Experiment 1 — Single agent
     out1 = single_agent(client, task)
     s1, _ = evaluate_output(out1)
     results["Single Agent"] = {"output": out1, "score": s1}
+    time.sleep(2)
 
-    # Experiment 2 — Planner + Executor only (no Reviewer)
     plan2 = planner_agent(client, task)
     out2 = executor_agent(client, task, plan2)
     s2, _ = evaluate_output(out2)
     results["Planner + Executor"] = {"output": out2, "score": s2}
+    time.sleep(2)
 
-    # Experiment 3 — Full 3-agent pipeline
     plan3 = planner_agent(client, task)
     exec3 = executor_agent(client, task, plan3)
     out3 = reviewer_agent(client, task, exec3)
     s3, _ = evaluate_output(out3)
     results["Planner + Executor + Reviewer"] = {"output": out3, "score": s3}
+    time.sleep(2)
 
-    # Experiment 4 — Full pipeline + Critic
     plan4 = planner_agent(client, task)
     exec4 = executor_agent(client, task, plan4)
     rev4 = reviewer_agent(client, task, exec4)
@@ -280,7 +275,6 @@ def run_ablation(client, task):
     results["Full Pipeline + Critic"] = {"output": out4, "score": s4}
 
     return results
-
 
 # ── MEMORY ───────────────────────────────────────────────────
 
@@ -469,35 +463,6 @@ with tab1:
                         final = reviewer_agent(client, task, detailed, context)
                     st.success("Done")
 
-                st.markdown("**Running multi-agent pipeline...**")
-                c1, c2, c3 = st.columns(3)
-
-                with c1:
-                    st.markdown("""<div class="agent-card">
-                        <div class="agent-label">Agent 01</div>
-                        <div class="agent-title">Planner</div>
-                    </div>""", unsafe_allow_html=True)
-                    with st.spinner(""):
-                        plan = planner_agent(client, task)
-                    st.success("Done")
-
-                with c2:
-                    st.markdown("""<div class="agent-card">
-                        <div class="agent-label">Agent 02</div>
-                        <div class="agent-title">Executor</div>
-                    </div>""", unsafe_allow_html=True)
-                    with st.spinner(""):
-                        detailed = executor_agent(client, task, plan)
-                    st.success("Done")
-
-                with c3:
-                    st.markdown("""<div class="agent-card">
-                        <div class="agent-label">Agent 03</div>
-                        <div class="agent-title">Reviewer</div>
-                    </div>""", unsafe_allow_html=True)
-                    with st.spinner(""):
-                        final = reviewer_agent(client, task, detailed)
-                    st.success("Done")
 
                 single_score, single_bd = evaluate_output(single_out)
                 multi_score, multi_bd = evaluate_output(final)
