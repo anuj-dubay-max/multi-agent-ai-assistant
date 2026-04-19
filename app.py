@@ -1,76 +1,82 @@
 # -*- coding: utf-8 -*-
+"""
+Multi-Agent Code Review Pipeline
+Research Question: Does multi-agent deliberation improve code review quality
+over single-agent review, and which configurations yield optimal tradeoffs?
+"""
+
 import streamlit as st
-import json, os, re
+import json
+import os
+import re
+import ast
+import hashlib
+import time
 from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
-import time
 import plotly.graph_objects as go
+
 load_dotenv()
 
 st.set_page_config(
-    page_title="AI Agentic Task Assistant",
-    page_icon="A",
+    page_title="Multi-Agent Code Review",
+    page_icon="🔍",
     layout="wide"
 )
 
+# ══════════════════════════════════════════════════════════════
+# STYLING
+# ══════════════════════════════════════════════════════════════
+
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+code, pre { font-family: 'JetBrains Mono', monospace !important; }
 
-.main-header {
-    font-family: 'Syne', sans-serif;
-    font-size: 3rem;
-    font-weight: 800;
-    letter-spacing: -1px;
-    line-height: 1.1;
-    margin-bottom: 0.2rem;
+.hero-title {
+    font-size: 2.8rem; font-weight: 800; letter-spacing: -1.5px;
+    line-height: 1.05; margin-bottom: 0.3rem;
 }
-.main-sub { font-size: 1rem; color: #888; font-weight: 300; margin-bottom: 2rem; }
-.agent-card {
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    padding: 1.2rem 1.4rem;
-    margin: 0.5rem 0;
-    background: #111;
+.hero-sub { font-size: 1rem; color: #888; font-weight: 300; margin-bottom: 1.5rem; }
+
+.finding-card {
+    border-left: 3px solid; border-radius: 0 8px 8px 0;
+    padding: 0.8rem 1rem; margin: 0.4rem 0;
+    background: #111; font-size: 0.88rem;
 }
-.agent-label {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 0.3rem;
+.severity-critical { border-left-color: #ff4444; }
+.severity-warning  { border-left-color: #ffaa00; }
+.severity-style    { border-left-color: #4488ff; }
+.severity-info     { border-left-color: #44bb88; }
+
+.sev-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; margin-right: 8px;
 }
-.agent-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; }
-.score-block { border-radius: 16px; padding: 2rem; text-align: center; }
-.score-block-single { background: #1a0a0a; border: 1px solid #3a1a1a; }
-.score-block-multi { background: #0a1a0a; border: 1px solid #1a3a1a; }
-.score-num { font-family: 'Syne', sans-serif; font-size: 4rem; font-weight: 800; line-height: 1; }
-.score-label { font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #666; margin-top: 0.3rem; }
-.diff-block { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 2rem 0; }
-.diff-num { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; }
-.bar-container { background: #1a1a1a; border-radius: 8px; height: 8px; width: 100%; margin: 0.3rem 0 0.8rem 0; overflow: hidden; }
-.bar-fill-single { height: 100%; border-radius: 8px; background: #e05252; }
-.bar-fill-multi { height: 100%; border-radius: 8px; background: #52c478; }
-.metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
-.metric-name { font-size: 0.8rem; color: #888; }
-.metric-val { font-size: 0.8rem; font-weight: 600; }
-.pipeline-step { display: flex; align-items: center; gap: 0.8rem; padding: 0.6rem 0; }
-.step-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.step-dot-done { background: #52c478; }
-.output-tag { font-family: 'Syne', sans-serif; font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: #555; margin-bottom: 0.8rem; }
-.stButton button { font-family: 'Syne', sans-serif !important; font-weight: 700 !important; letter-spacing: 1px !important; }
+.sev-critical { background: #ff444433; color: #ff6666; }
+.sev-warning  { background: #ffaa0033; color: #ffbb33; }
+.sev-style    { background: #4488ff33; color: #6699ff; }
+.sev-info     { background: #44bb8833; color: #66ddaa; }
+
+.stat-card {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 12px;
+    padding: 1.2rem; text-align: center;
+}
+.stat-num { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.75rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 0.3rem; }
 </style>
 """, unsafe_allow_html=True)
 
-MEMORY_FILE = "memory.json"
-MODEL = "llama-3.3-70b-versatile"
+# ══════════════════════════════════════════════════════════════
+# CONFIG & HELPERS
+# ══════════════════════════════════════════════════════════════
 
-# ── HELPER ──────────────────────────────────────────────────
+MODEL = "llama-3.3-70b-versatile"
+MEMORY_FILE = "review_memory.json"
 
 def get_client():
     try:
@@ -79,7 +85,7 @@ def get_client():
             st.secrets.get("GROQ_API_KEY", "") or
             st.session_state.get("groq_api_key", "")
         )
-    except:
+    except Exception:
         api_key = (
             os.getenv("GROQ_API_KEY") or
             st.session_state.get("groq_api_key", "")
@@ -88,207 +94,549 @@ def get_client():
         return None
     return Groq(api_key=api_key)
 
-def router_agent(client, task):
-    """
-    Detects what type of task the user wants and returns context
-    that all other agents will use to adapt their behavior.
-    """
-    return call_llm(client,
-        """You are a Task Router AI.
-Analyze the user's request and return ONLY a JSON object like this:
-{
-  "task_type": "one of: learning/code_review/resume/document/creative/planning/analysis/other",
-  "output_format": "one of: step_by_step_plan/code_feedback/resume_feedback/summary/creative_content/structured_plan/analysis_report",
-  "tone": "one of: beginner_friendly/technical/professional/casual",
-  "key_focus": "one sentence describing the main goal"
-}
-Return ONLY the JSON. No explanation.""",
-        f"Analyze this task: {task}"
-    )
-
-def call_llm(client, system_prompt, user_message):
+def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=3000):
+    """Low temperature for review tasks — we want precision, not creativity."""
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_message},
         ],
-        temperature=0.7,
-        max_tokens=3000,
+        temperature=temperature,
+        max_tokens=max_tokens,
     )
     return response.choices[0].message.content
 
-# ── AGENTS ───────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# STATIC ANALYSIS TOOLS
+# ══════════════════════════════════════════════════════════════
 
-def planner_agent(client, task, context=""):
+def run_ast_analysis(code):
+    """Parse Python AST and extract structural information."""
+    findings = []
+    try:
+        tree = ast.parse(code)
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                branches = sum(1 for _ in ast.walk(node)
+                              if isinstance(_, (ast.If, ast.While, ast.For, ast.ExceptHandler)))
+                if branches > 10:
+                    findings.append({
+                        "type": "complexity",
+                        "severity": "warning",
+                        "location": f"Function '{node.name}' (line {node.lineno})",
+                        "message": f"High cyclomatic complexity (~{branches} branches). Consider breaking into smaller functions.",
+                        "agent": "AST Analyzer"
+                    })
+
+                if len(node.args.args) > 5:
+                    findings.append({
+                        "type": "style",
+                        "severity": "style",
+                        "location": f"Function '{node.name}' (line {node.lineno})",
+                        "message": f"Function has {len(node.args.args)} parameters. Consider using a config object.",
+                        "agent": "AST Analyzer"
+                    })
+
+                docstring = ast.get_docstring(node)
+                if not docstring and not node.name.startswith("_"):
+                    findings.append({
+                        "type": "documentation",
+                        "severity": "info",
+                        "location": f"Function '{node.name}' (line {node.lineno})",
+                        "message": "Missing docstring for public function.",
+                        "agent": "AST Analyzer"
+                    })
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ExceptHandler) and node.type is None:
+                findings.append({
+                    "type": "bug_risk",
+                    "severity": "warning",
+                    "location": f"Line {node.lineno}",
+                    "message": "Bare 'except:' catches all exceptions including KeyboardInterrupt. Use 'except Exception:' at minimum.",
+                    "agent": "AST Analyzer"
+                })
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                for default in node.args.defaults:
+                    if isinstance(default, (ast.List, ast.Dict, ast.Set)):
+                        findings.append({
+                            "type": "bug_risk",
+                            "severity": "critical",
+                            "location": f"Function '{node.name}' (line {node.lineno})",
+                            "message": "Mutable default argument. This is a common Python bug — the mutable object is shared across all calls.",
+                            "agent": "AST Analyzer"
+                        })
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Global):
+                findings.append({
+                    "type": "style",
+                    "severity": "warning",
+                    "location": f"Line {node.lineno}",
+                    "message": f"Use of global variable: {', '.join(node.names)}. Consider refactoring.",
+                    "agent": "AST Analyzer"
+                })
+
+    except SyntaxError as e:
+        findings.append({
+            "type": "syntax",
+            "severity": "critical",
+            "location": f"Line {e.lineno}",
+            "message": f"Syntax Error: {e.msg}",
+            "agent": "AST Analyzer"
+        })
+
+    return findings
+
+def run_security_patterns(code):
+    """Regex-based security pattern detection."""
+    findings = []
+
+    patterns = [
+        (r'eval\s*\(', "eval() usage", "critical",
+         "eval() is dangerous — can execute arbitrary code. Use ast.literal_eval() for safe parsing."),
+        (r'exec\s*\(', "exec() usage", "critical",
+         "exec() can execute arbitrary code. Almost always a security risk."),
+        (r'__import__\s*\(', "__import__() usage", "warning",
+         "Dynamic imports can load untrusted modules."),
+        (r'subprocess\.call\s*\(.*shell\s*=\s*True', "subprocess with shell=True", "critical",
+         "shell=True with user input enables command injection attacks."),
+        (r'os\.system\s*\(', "os.system() usage", "critical",
+         "os.system() is vulnerable to command injection. Use subprocess with shell=False."),
+        (r'pickle\.loads?\s*\(', "pickle usage", "critical",
+         "pickle can execute arbitrary code during deserialization. Never unpickle untrusted data."),
+        (r'yaml\.load\s*\([^)]*\)(?!.*Loader)', "yaml.load() without Loader", "warning",
+         "yaml.load() without Loader is unsafe. Use yaml.safe_load() or yaml.load(data, Loader=yaml.SafeLoader)."),
+        (r'password\s*=\s*["\'][^"\']+["\']', "Hardcoded password", "critical",
+         "Hardcoded password detected. Use environment variables or a secrets manager."),
+        (r'api_key\s*=\s*["\'][^"\']+["\']', "Hardcoded API key", "critical",
+         "Hardcoded API key detected. Use environment variables or a secrets manager."),
+        (r'SELECT.*FROM.*WHERE.*\+\s*(?:request|f["\'])', "SQL injection risk", "critical",
+         "Possible SQL injection via string concatenation. Use parameterized queries."),
+        (r'assert\s+', "assert in production code", "warning",
+         "assert statements are removed with -O flag. Don't use for validation in production."),
+        # FIX: Added torch.load without weights_only check
+        (r'torch\.load\s*\([^)]*\)(?!.*weights_only)', "torch.load() without weights_only", "critical",
+         "torch.load() without weights_only=True can execute arbitrary code. Use torch.load(path, weights_only=True)."),
+    ]
+
+    for i, line in enumerate(code.split('\n'), 1):
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            continue
+        for pattern, name, severity, message in patterns:
+            if re.search(pattern, stripped, re.IGNORECASE):
+                findings.append({
+                    "type": "security",
+                    "severity": severity,
+                    "location": f"Line {i}",
+                    "message": f"{name}: {message}",
+                    "agent": "Security Scanner"
+                })
+
+    return findings
+
+# ══════════════════════════════════════════════════════════════
+# AGENTS
+# ══════════════════════════════════════════════════════════════
+
+def tool_agent(code):
+    """Tool Agent: Runs static analysis tools and returns structured findings."""
+    ast_findings = run_ast_analysis(code)
+    security_findings = run_security_patterns(code)
+    return ast_findings + security_findings
+
+def security_reviewer(client, code, tool_findings):
+    """Agent A: Reviews code for security vulnerabilities."""
+    tool_summary = "\n".join(
+        f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
+        for f in tool_findings if f['type'] == 'security'
+    )
+
     return call_llm(client,
-        f"""You are an expert Planner AI.
-Analyze the task and break it into exactly 5 clear steps.
-{f"Context: {context}" if context else ""}
-Adapt your output format to match the task type.
-For learning tasks: use Day/Step format
-For code review: use Issue 1, Issue 2 format
-For documents/resumes: use Section 1, Section 2 format
-For creative tasks: use Part 1, Part 2 format
-Format EXACTLY like:
-Step 1: [Title] - [1 sentence description]
-Step 2: [Title] - [1 sentence description]
-No extra text. Just the 5 steps.""",
-        f"Break this task into 5 steps: {task}"
+        """You are a Senior Security Engineer reviewing code.
+Find ACTUAL security vulnerabilities. For each finding, provide:
+1. Line number or code snippet
+2. Vulnerability type (OWASP category if applicable)
+3. Severity: CRITICAL / WARNING / INFO
+4. Explanation of the attack vector
+5. Specific fix with code example
+
+IMPORTANT: Only report REAL vulnerabilities. Do NOT hallucinate issues.
+If the tool scanner found something, verify it. If it's a false positive, say so.
+Return findings as a numbered list.""",
+        f"""Code to review:
+```
+{code}
+```
+Static analysis findings:
+{tool_summary if tool_summary else "No security patterns detected by scanner."}
+
+Provide your security review.""")
+
+def correctness_reviewer(client, code, tool_findings):
+    """Agent B: Reviews code for correctness and logic bugs."""
+    tool_summary = "\n".join(
+        f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
+        for f in tool_findings if f['type'] in ('bug_risk', 'complexity', 'syntax')
     )
 
-def executor_agent(client, task, plan, context=""):
     return call_llm(client,
-        f"""You are an Executor AI.
-{f"Task context: {context}" if context else ""}
-Expand EACH step with detailed, specific content.
-Adapt your output to the task type:
-- For learning: include resources and exercises
-- For code review: include specific fixes and examples  
-- For resume/documents: include rewritten sections
-- For creative: include actual content
-- For analysis: include data and reasoning
-Be specific and practical. No generic advice.""",
-        f"Task: {task}\n\nPlan:\n{plan}\n\nExpand each step fully."
-    )
-    
+        """You are a Senior Software Engineer reviewing code for CORRECTNESS.
+Find logic bugs, race conditions, off-by-one errors, type errors,
+unhandled edge cases, and incorrect algorithms.
 
-def reviewer_agent(client, task, detailed, context=""):
+For each finding provide:
+1. Line number or code snippet
+2. Bug category (logic/race/type/edge_case/algorithm)
+3. Severity: CRITICAL / WARNING / INFO
+4. What goes wrong in practice
+5. Specific fix with corrected code
+
+IMPORTANT: Only report REAL bugs. Explain WHY it's wrong.
+If the tool analysis found something, verify and elaborate.
+Return findings as a numbered list.""",
+        f"""Code to review:
+```
+{code}
+```
+Static analysis findings:
+{tool_summary if tool_summary else "No bug patterns detected by scanner."}
+
+Provide your correctness review.""")
+
+def style_reviewer(client, code, tool_findings):
+    """Agent C: Reviews code for style, readability, and maintainability."""
+    tool_summary = "\n".join(
+        f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
+        for f in tool_findings if f['type'] in ('style', 'documentation')
+    )
+
     return call_llm(client,
-        f"""You are a Reviewer AI.
-{f"Task context: {context}" if context else ""}
-Improve the output by:
-- Adding a relevant opening line
-- Ensuring each step is specific to this exact task
-- Fixing gaps or generic content
-- Adding a 2-line summary
-Return the COMPLETE improved output.""",
-        f"Task: {task}\n\nDraft:\n{detailed}\n\nReturn improved version."
-    )
-    
-        
-def critic_agent(client, task, reviewed_output):
+        """You are a Code Quality Engineer reviewing for STYLE and MAINTAINABILITY.
+Check for: naming conventions, function length, code duplication,
+missing type hints, poor abstractions, readability issues.
+
+For each finding provide:
+1. Line number or code snippet
+2. Category (naming/length/duplication/types/abstraction/readability)
+3. Severity: STYLE / INFO
+4. Why it matters for maintainability
+5. Improved version of the code
+
+Be practical. Don't nitpick. Focus on changes that genuinely improve readability.
+Return findings as a numbered list.""",
+        f"""Code to review:
+```
+{code}
+```
+Static analysis findings:
+{tool_summary if tool_summary else "No style issues detected by scanner."}
+
+Provide your style review.""")
+
+def debate_agent(client, finding_a, finding_b, code):
+    """
+    Novel mechanism: Two reviewers' findings are compared.
+    The debate agent identifies contradictions and confirms consensus.
+    """
     return call_llm(client,
-        """You are a Critic AI. Your job is to find flaws.
-Be strict. Review the plan and identify:
-1. Any factually incorrect information
-2. Any steps that are vague or unmeasurable
-3. Any missing critical resources
-4. Any unrealistic time estimates
-Then provide a corrected final version.
-Be specific. Don't just say improve — say exactly what to fix.""",
-        f"Task: {task}\n\nPlan to critique:\n{reviewed_output}\n\nProvide critique and corrected version."
-    )
-    
-    
+        """You are a Code Review Arbitrator. Two independent reviewers have analyzed the same code.
+Your job:
+1. Find FINDINGS BOTH REVIEWERS AGREE ON — these are high-confidence
+2. Find CONTRADICTIONS — where reviewers disagree
+3. Find UNIQUE FINDINGS — found by only one reviewer (mark as lower confidence)
+4. Flag any HALLUCINATED findings that don't match the actual code
 
-def followup_agent(client, task, previous_output, user_message):
+Return a structured analysis:
+## High-Confidence Findings (Both Agree)
+## Medium-Confidence (One Reviewer Only)
+## Contradictions
+## Likely Hallucinations""",
+        f"""Code:
+```
+{code}
+```
+Reviewer A (Security Focus):
+{finding_a}
+
+Reviewer B (Correctness Focus):
+{finding_b}
+
+Provide your arbitration.""")
+
+def synthesizer_agent(client, combined_input, style_result, tool_findings):
+    """Merges all findings into a prioritized, deduplicated review."""
     return call_llm(client,
-        """You are a helpful AI assistant with context of a task plan.
-The user may want to refine the plan, ask a question, make it harder or easier,
-focus on a specific part, or get more resources.
-Read their message and respond naturally.
-If they ask a question, answer it directly.
-If they want to modify the plan, return the complete updated plan.""",
-        f"""Original task: {task}
+        """You are a Review Synthesizer. Combine all findings into ONE coherent review.
+Rules:
+1. Deduplicate — if the same issue appears multiple times, keep the best explanation
+2. Prioritize — CRITICAL first, then WARNING, then STYLE, then INFO
+3. Add a summary score: estimate how many REAL bugs/issues exist
+4. Add a confidence level for each finding (HIGH/MEDIUM/LOW based on agreement)
+5. Keep all code examples and fixes
 
-Current plan:
-{previous_output}
+Format each finding as:
+### [SEVERITY] Issue Title
+**Location:** line X
+**Confidence:** HIGH/MEDIUM/LOW
+**Description:** ...
+**Fix:** ```python ... ```
 
-User message: {user_message}
+End with:
+## Summary
+- X critical issues, Y warnings, Z style suggestions
+- Overall assessment: SAFE / NEEDS CHANGES / CRITICAL ISSUES""",
+        f"""Analysis input (security + correctness):
+{combined_input}
 
-The user is continuing the conversation about "{task}".
-Interpret their message in context and respond helpfully."""
-    )
+Style review:
+{style_result}
 
-def single_agent(client, task):
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": "You are a helpful AI assistant. Complete the given task thoroughly."},
-            {"role": "user", "content": f"Task: {task}"},
-        ],
-        temperature=0.7,
-        max_tokens=1200,
-    )
-    return response.choices[0].message.content
+Tool findings:
+{json.dumps(tool_findings, indent=2) if tool_findings else 'None'}
 
-# ── SCORING ──────────────────────────────────────────────────
+Synthesize into a final review.""")
 
-def evaluate_output(output):
-    score = 0
-    breakdown = {}
+def verifier_agent(client, code, final_review):
+    """
+    Verification step: Checks each finding against the actual code
+    to reduce hallucinated bugs.
+    """
+    return call_llm(client,
+        """You are a Code Review Verifier. Your ONLY job is to check if the findings
+in this review are ACTUALLY present in the code.
 
-    sections = len(re.findall(r'Step \d', output))
-    s = min(sections, 5)
-    breakdown["Structure"] = (s, f"{sections} steps found")
-    score += s
+For each finding in the review:
+1. Check if the cited code/line actually exists
+2. Check if the described bug actually manifests
+3. Mark each finding as: VERIFIED / UNVERIFIED / FALSE_POSITIVE
 
-    urls = len(re.findall(r'https?://', output))
-    r = min(urls, 5)
-    breakdown["Resources"] = (r, f"{urls} links found")
-    score += r
+A finding is FALSE_POSITIVE if:
+- The cited line doesn't exist
+- The code shown in the finding doesn't match the actual code
+- The described behavior is incorrect
 
-    exercises = len(re.findall(r'Exercise:', output, re.IGNORECASE))
-    e = min(exercises, 5)
-    breakdown["Exercises"] = (e, f"{exercises} exercises found")
-    score += e
+Return the SAME review but with a verification status on each finding.
+Remove any FALSE_POSITIVE findings entirely.
+Add a note at the top: "X/Y findings verified (Z removed as false positives)".""",
+        f"""Original code:
+```
+{code}
+```
+Review to verify:
+{final_review}
 
-    beginner_terms = ["beginner", "easy", "simple", "basic", "step by step", "start with", "first", "introduce"]
-    b = min(sum(t in output.lower() for t in beginner_terms), 5)
-    breakdown["Clarity"] = (b, "beginner-friendly language")
-    score += b
+Verify each finding against the actual code.""")
 
-    action_terms = ["practice", "implement", "build", "create", "learn", "develop", "apply", "understand", "analyze", "review"]
-    a = min(sum(t in output.lower() for t in action_terms), 5)
-    breakdown["Depth"] = (a, "action-oriented content")
-    score += a
+def single_agent_review(client, code):
+    """Baseline: Single agent does everything."""
+    return call_llm(client,
+        "You are a code reviewer. Review the following Python code for bugs, security issues, and style problems. Provide specific findings with line numbers and fixes.",
+        f"Review this code:\n```\n{code}\n```")
 
-    return score, breakdown
+# ══════════════════════════════════════════════════════════════
+# EVALUATION
+# ══════════════════════════════════════════════════════════════
 
-def run_ablation(client, task):
+def llm_as_judge(client, code, review_output):
+    """
+    Uses an LLM to evaluate review quality.
+    FIX: code is now properly injected into the user message.
+    """
+    return call_llm(client,
+        """You are an expert code review evaluator. Rate this code review on 5 dimensions.
+
+For each dimension, give a score from 1-5 and a one-line justification.
+
+1. COMPLETENESS: Did it find all the important issues? (1=missed everything, 5=found all major issues)
+2. ACCURACY: Are the findings actually correct? (1=mostly wrong, 5=all verified correct)
+3. ACTIONABILITY: Are the fixes specific and implementable? (1=vague advice, 5=copy-paste fixes)
+4. PRIORITIZATION: Are critical issues highlighted before minor ones? (1=no ordering, 5=clear severity ordering)
+5. LOW_HALLUCINATION: Do findings match the actual code? (1=many hallucinated, 5=all verified)
+
+Return ONLY this JSON format:
+{
+  "completeness": {"score": X, "note": "..."},
+  "accuracy": {"score": X, "note": "..."},
+  "actionability": {"score": X, "note": "..."},
+  "prioritization": {"score": X, "note": "..."},
+  "low_hallucination": {"score": X, "note": "..."},
+  "total": X,
+  "max": 25
+}""",
+        # FIX: code is now interpolated into the prompt so the judge actually sees it
+        f"""Original code:
+```
+{code}
+```
+Review to evaluate:
+{review_output}
+
+Evaluate this review.""")
+
+def parse_judge_score(raw):
+    """Parse LLM judge output into scores."""
+    try:
+        clean = raw.strip()
+        if clean.startswith("```"):
+            clean = re.sub(r'```json|```', '', clean).strip()
+        data = json.loads(clean)
+        return data
+    except (json.JSONDecodeError, KeyError, ValueError):
+        # FIX: replaced bare except with specific exceptions
+        scores = re.findall(r'"score":\s*(\d)', raw)
+        if len(scores) >= 5:
+            total = sum(int(s) for s in scores[:5])
+            return {
+                "completeness":    {"score": int(scores[0]), "note": ""},
+                "accuracy":        {"score": int(scores[1]), "note": ""},
+                "actionability":   {"score": int(scores[2]), "note": ""},
+                "prioritization":  {"score": int(scores[3]), "note": ""},
+                "low_hallucination": {"score": int(scores[4]), "note": ""},
+                "total": total,
+                "max": 25
+            }
+        return None
+
+def count_findings(review_text):
+    """Objective metric: count distinct findings mentioned."""
+    critical = len(re.findall(r'\bCRITICAL\b', review_text))
+    warning  = len(re.findall(r'\bWARNING\b',  review_text))
+    style    = len(re.findall(r'\bSTYLE\b',    review_text))
+    info     = len(re.findall(r'\bINFO\b',     review_text))
+    total    = critical + warning + style + info
+    return {"critical": critical, "warning": warning, "style": style, "info": info, "total": total}
+
+# ══════════════════════════════════════════════════════════════
+# ABLATION STUDY
+# ══════════════════════════════════════════════════════════════
+
+def run_ablation_study(client, code, n_runs=1):
+    """
+    Proper ablation: same code, multiple configurations.
+    Each configuration is run n_runs times for statistical significance.
+    """
+    configs = [
+        ("Single Agent",               "single"),
+        ("Tool Only",                  "tool_only"),
+        ("Tool + Security Reviewer",   "tool_security"),
+        ("Tool + Security + Correctness", "tool_sec_corr"),
+        ("Full Pipeline (no Debate)",  "full_no_debate"),
+        ("Full Pipeline + Debate",     "full_with_debate"),
+        ("Full + Debate + Verification", "full_verified"),
+    ]
+
     results = {}
 
-    out1 = single_agent(client, task)
-    s1, _ = evaluate_output(out1)
-    results["Single Agent"] = {"output": out1, "score": s1}
-    time.sleep(2)
+    for config_name, config_type in configs:
+        all_scores  = []
+        all_outputs = []
 
-    plan2 = planner_agent(client, task)
-    out2 = executor_agent(client, task, plan2)
-    s2, _ = evaluate_output(out2)
-    results["Planner + Executor"] = {"output": out2, "score": s2}
-    time.sleep(2)
+        for run in range(n_runs):
+            output = run_config(client, code, config_type)
+            all_outputs.append(output)
 
-    plan3 = planner_agent(client, task)
-    exec3 = executor_agent(client, task, plan3)
-    out3 = reviewer_agent(client, task, exec3)
-    s3, _ = evaluate_output(out3)
-    results["Planner + Executor + Reviewer"] = {"output": out3, "score": s3}
-    time.sleep(2)
+            judge_raw    = llm_as_judge(client, code, output)
+            judge_scores = parse_judge_score(judge_raw)
+            all_scores.append(judge_scores["total"] if judge_scores else 0)
 
-    plan4 = planner_agent(client, task)
-    exec4 = executor_agent(client, task, plan4)
-    rev4 = reviewer_agent(client, task, exec4)
-    out4 = critic_agent(client, task, rev4)
-    s4, _ = evaluate_output(out4)
-    results["Full Pipeline + Critic"] = {"output": out4, "score": s4}
+            # FIX: increased sleep to reduce rate-limit errors
+            time.sleep(4)
+
+        avg_score = sum(all_scores) / len(all_scores) if all_scores else 0
+        findings  = count_findings(all_outputs[-1]) if all_outputs else {}
+
+        results[config_name] = {
+            "avg_score": round(avg_score, 1),
+            "scores":    all_scores,
+            "output":    all_outputs[-1],
+            "findings":  findings,
+        }
+
+        with open("ablation_cache.json", "w") as f:
+            json.dump(
+                {k: {"avg_score": v["avg_score"], "scores": v["scores"], "findings": v["findings"]}
+                 for k, v in results.items()},
+                f, indent=2
+            )
 
     return results
 
-# ── MEMORY ───────────────────────────────────────────────────
 
-def save_to_memory(task, single_score, multi_score, final_output=""):
+def run_config(client, code, config_type):
+    """
+    Run a specific pipeline configuration.
+    FIX: full_no_debate branch no longer calls debate_agent, and correctly
+    passes the direct combination of sec+corr reviews to synthesizer_agent.
+    """
+    if config_type == "single":
+        return single_agent_review(client, code)
+
+    tool_findings = tool_agent(code)
+
+    if config_type == "tool_only":
+        if tool_findings:
+            return "Static Analysis Results:\n" + "\n".join(
+                f"[{f['severity'].upper()}] {f['location']}: {f['message']}"
+                for f in tool_findings
+            )
+        return "No issues found by static analysis."
+
+    sec_review = security_reviewer(client, code, tool_findings)
+
+    if config_type == "tool_security":
+        return sec_review
+
+    corr_review = correctness_reviewer(client, code, tool_findings)
+
+    if config_type == "tool_sec_corr":
+        return f"## Security Review\n{sec_review}\n\n## Correctness Review\n{corr_review}"
+
+    style_review = style_reviewer(client, code, tool_findings)
+
+    # FIX: full_no_debate — synthesize directly from sec+corr without calling debate_agent at all
+    if config_type == "full_no_debate":
+        combined_no_debate = f"Security Review:\n{sec_review}\n\nCorrectness Review:\n{corr_review}"
+        return synthesizer_agent(client, combined_no_debate, style_review, tool_findings)
+
+    # From here, debate IS used
+    debate = debate_agent(client, sec_review, corr_review, code)
+    synth  = synthesizer_agent(client, debate, style_review, tool_findings)
+
+    if config_type == "full_with_debate":
+        return synth
+
+    if config_type == "full_verified":
+        return verifier_agent(client, code, synth)
+
+    return synth
+
+# ══════════════════════════════════════════════════════════════
+# MEMORY
+# ══════════════════════════════════════════════════════════════
+
+def save_review(code_snippet, single_score, multi_score, config_used="full"):
     memory = []
     if os.path.exists(MEMORY_FILE):
-        with open(MEMORY_FILE, "r") as f:
-            memory = json.load(f)
+        try:
+            with open(MEMORY_FILE, "r") as f:
+                memory = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            memory = []
+
+    code_hash = hashlib.md5(code_snippet.encode()).hexdigest()[:8]
     memory.append({
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "task": task,
+        "timestamp":    datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "code_hash":    code_hash,
+        "code_preview": code_snippet[:100],
         "single_score": single_score,
-        "multi_score": multi_score,
-        "output": final_output,
+        "multi_score":  multi_score,
+        "config":       config_used,
     })
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f, indent=2)
@@ -296,20 +644,167 @@ def save_to_memory(task, single_score, multi_score, final_output=""):
 def load_memory():
     if not os.path.exists(MEMORY_FILE):
         return []
-    with open(MEMORY_FILE, "r") as f:
+    try:
+        with open(MEMORY_FILE, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+# ══════════════════════════════════════════════════════════════
+# SAMPLE CODE
+# ══════════════════════════════════════════════════════════════
+
+SAMPLE_CODES = {
+    "Vulnerable Web App": '''import os
+import pickle
+import sqlite3
+
+def get_user(username):
+    conn = sqlite3.connect("users.db")
+    # FIX (sample): use parameterized query
+    query = "SELECT * FROM users WHERE username = ?"
+    return conn.execute(query, (username,)).fetchone()
+
+def load_session(data):
+    return pickle.loads(data)
+
+def run_command(cmd):
+    os.system(cmd)
+
+def process_items(items=None):
+    # FIX (sample): avoid mutable default argument
+    if items is None:
+        items = []
+    for item in items:
+        print(item)
+    items.append("processed")
+
+def calculate_discount(price, discount):
+    # FIX (sample): use explicit validation instead of assert
+    if not (0 <= discount <= 100):
+        raise ValueError(f"discount must be 0–100, got {discount}")
+    return price * (1 - discount / 100)
+
+def authenticate(username, password):
+    # FIX (sample): never hardcode credentials — use env vars
+    expected = os.getenv("ADMIN_PASSWORD")
+    return username == "admin" and password == expected
+''',
+
+    "Data Pipeline Bug": '''import pandas as pd
+from typing import List, Optional
+
+def process_data(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.dropna()
+    avg = df["value"].mean()
+    result = df[df["value"] > avg].copy()
+    # FIX (sample): use .assign() to avoid SettingWithCopyWarning
+    result = result.assign(percentage=result["value"] / result["value"].sum() * 100)
+    return result
+
+def merge_datasets(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
+    return pd.merge(left, right, on="id")
+
+def load_config(path: str = "config.json") -> dict:
+    import json
+    with open(path) as f:
         return json.load(f)
 
-# ── SIDEBAR ──────────────────────────────────────────────────
+def validate_email(emails: List[str]) -> List[bool]:
+    # FIX (sample): check every email, return a result per address
+    return ["@" in email for email in emails]
+
+def chunk_list(data: list, chunk_size: int) -> list:
+    # FIX (sample): step parameter was missing — was iterating every index
+    return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+
+class DataProcessor:
+    # FIX (sample): moved cache to __init__ so each instance gets its own dict
+    def __init__(self):
+        self.cache: dict = {}
+
+    def process(self, data):
+        key = str(data)
+        if key in self.cache:
+            return self.cache[key]
+        result = self._expensive_operation(data)
+        self.cache[key] = result
+        return result
+
+    def _expensive_operation(self, data):
+        total = 0
+        for i in range(1_000_000):
+            total += i * data
+        return total
+''',
+
+    "ML Training Script": '''import torch
+import torch.nn as nn
+
+class SimpleModel(nn.Module):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int):
+        super().__init__()
+        self.layer1 = nn.Linear(input_dim, hidden_dim)
+        self.layer2 = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.layer1(x)
+        x = self.layer2(x)
+        return x
+
+def train_model(model, dataloader, epochs=100, lr=0.01):
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+
+    losses = []
+    for epoch in range(epochs):
+        for batch_x, batch_y in dataloader:
+            optimizer.zero_grad()
+            output = model(batch_x)
+            loss = criterion(output, batch_y)
+            loss.backward()
+            optimizer.step()
+            losses.append(loss.item())
+
+    return model, losses
+
+def evaluate(model, test_data) -> float:
+    model.eval()
+    correct = 0
+    total   = 0
+    with torch.no_grad():
+        for x, y in test_data:
+            pred = model(x)
+            # FIX (sample): compare scalar prediction to scalar label,
+            # not to the whole batch tensor
+            predicted_labels = pred.argmax(dim=-1)
+            correct += (predicted_labels == y).sum().item()
+            total   += y.numel()
+    return correct / total if total > 0 else 0.0
+
+def save_checkpoint(model, path: str) -> None:
+    torch.save(model.state_dict(), path)
+
+def load_checkpoint(model, path: str):
+    # FIX (sample): weights_only=True prevents arbitrary code execution
+    model.load_state_dict(torch.load(path, weights_only=True))
+    return model
+'''
+}
+
+# ══════════════════════════════════════════════════════════════
+# SIDEBAR
+# ══════════════════════════════════════════════════════════════
 
 with st.sidebar:
-    st.markdown("### Setup")
+    st.markdown("### ⚙️ Setup")
     if os.getenv("GROQ_API_KEY"):
-        st.success("API key loaded")
+        st.success("API key loaded from env")
     else:
         try:
             if st.secrets.get("GROQ_API_KEY"):
-                st.success("API key loaded")
-        except:
+                st.success("API key loaded from secrets")
+        except Exception:
             if "groq_api_key" not in st.session_state:
                 st.session_state.groq_api_key = ""
             key_input = st.text_input("Groq API Key", type="password",
@@ -321,459 +816,527 @@ with st.sidebar:
                 st.warning("Enter Groq API key")
 
     st.divider()
-    st.markdown("### Pipeline")
-    st.markdown("""
-    <div class="pipeline-step">
-        <div class="step-dot step-dot-done"></div>
-        <span style="font-size:0.85rem">User Input</span>
-    </div>
-    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
-    <div class="pipeline-step">
-        <div class="step-dot step-dot-done"></div>
-        <span style="font-size:0.85rem">Planner Agent</span>
-    </div>
-    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
-    <div class="pipeline-step">
-        <div class="step-dot step-dot-done"></div>
-        <span style="font-size:0.85rem">Executor Agent</span>
-    </div>
-    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
-    <div class="pipeline-step">
-        <div class="step-dot step-dot-done"></div>
-        <span style="font-size:0.85rem">Reviewer Agent</span>
-    </div>
-    <div style="border-left:1px solid #222;height:16px;margin-left:4px"></div>
-    <div class="pipeline-step">
-        <div class="step-dot step-dot-done"></div>
-        <span style="font-size:0.85rem">Final Output</span>
-    </div>
-    """, unsafe_allow_html=True)
+
+    st.markdown("### 🏗️ Pipeline Config")
+    st.caption("Choose which agents to include")
+
+    use_tools       = st.checkbox("Tool Agent (AST + Security Scanner)", value=True)
+    use_security    = st.checkbox("Security Reviewer",    value=True)
+    use_correctness = st.checkbox("Correctness Reviewer", value=True)
+    use_style       = st.checkbox("Style Reviewer",       value=True)
+    use_debate      = st.checkbox("Debate Agent",         value=True,
+                                  help="Compares Security vs Correctness findings")
+    use_verification = st.checkbox("Verifier Agent",      value=True,
+                                   help="Removes hallucinated findings")
 
     st.divider()
-    st.markdown("### History")
+
+    st.markdown("### 📋 History")
     memory = load_memory()
     if memory:
-        for i, r in enumerate(reversed(memory[-5:])):
-            col_a, col_b = st.columns([4, 1])
-            with col_a:
-                st.markdown(f"**{r['task'][:28]}...**")
-                st.caption(f"S: {r['single_score']}/25  M: {r['multi_score']}/25")
-            with col_b:
-                if st.button("Load", key=f"load_{i}"):
-                    st.session_state.last_task = r['task']
-                    st.session_state.ran_once = True
-                    st.session_state.loaded_multi = r['multi_score']
-                    st.session_state.loaded_single = r['single_score']
-                    saved_output = r.get("output", "")
-                    if saved_output:
-                        st.session_state.last_output = saved_output
-                        st.session_state.show_full_output = saved_output
-                    else:
-                        st.session_state.last_output = f"No saved output. Run agents again for fresh output."
-                        st.session_state.show_full_output = ""
-                    st.session_state.show_loaded = True
-                    # Clear the input box
-                    st.session_state.loaded_task = ""
-            st.divider()
+        for r in reversed(memory[-5:]):
+            st.markdown(f"**`{r['code_hash']}`** — S: {r['single_score']}/25 M: {r['multi_score']}/25")
+            st.caption(r['code_preview'][:50] + "...")
     else:
-        st.caption("No sessions yet.")
+        st.caption("No reviews yet.")
 
-# ── MAIN ─────────────────────────────────────────────────────
+    st.divider()
+    st.markdown("### 📚 References")
+    st.caption("Wang et al. 2023 — arXiv:2308.11432")
+    st.caption("Xi et al. 2023 — arXiv:2309.07864")
+    st.caption("Liu et al. 2024 — arXiv:2308.03688")
+    st.caption("Zheng et al. 2023 — LLM-as-a-Judge")
 
-tab1, tab2, tab3 = st.tabs(["Assistant", "Ablation Study", "How It Works"])
+# ══════════════════════════════════════════════════════════════
+# MAIN TABS
+# ══════════════════════════════════════════════════════════════
+
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🔍 Code Review",
+    "📊 Ablation Study",
+    "🔬 Research Methodology",
+    "📖 How It Works"
+])
+
+# ── TAB 1: CODE REVIEW ──────────────────────────────────────
 
 with tab1:
-    st.markdown('<p class="main-header">AI Agentic Task Assistant</p>', unsafe_allow_html=True)
-    st.markdown('<p class="main-sub">Multi-Agent AI System -- Planner + Executor + Reviewer</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-title">Multi-Agent Code Review</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub">Specialized agents with tool use → debate → verification</p>', unsafe_allow_html=True)
 
-    # Show loaded session banner
-    if st.session_state.get("show_loaded"):
-        st.success(f"Loaded: **{st.session_state.get('last_task')}** -- Multi: {st.session_state.get('loaded_multi')}/25")
-        if st.session_state.get("show_full_output"):
-            with st.expander("Previous Output", expanded=True):
-                st.markdown(st.session_state.get("show_full_output"))
-        st.session_state.show_loaded = False
-        st.session_state.show_full_output = ""
+    col_sample, col_lang = st.columns([3, 1])
+    with col_sample:
+        sample_choice = st.selectbox("Load sample code", ["None"] + list(SAMPLE_CODES.keys()),
+                                     key="sample_select")
+    with col_lang:
+        language = st.selectbox("Language", ["Python", "JavaScript", "Java", "Other"],
+                                key="lang_select")
 
-    task = st.text_input("", value="",
-        placeholder="e.g. Review my Python code  |  Improve my resume  |  Summarize this document  |  Learn DSA in 5 days  |  Plan a marketing strategy",
-        label_visibility="collapsed")
+    code_input = st.text_area(
+        "Paste your code here",
+        value=SAMPLE_CODES.get(sample_choice, ""),
+        height=250,
+        placeholder="def process_data(items=[]):\n    ...",
+        key="code_input"
+    )
 
-    col_btn, col_info = st.columns([1, 5])
-    with col_btn:
-        run_btn = st.button("Run Agents", type="primary", use_container_width=True)
-    with col_info:
-        st.caption("Press the button to run -- Enter key is for the chat below")
+    run_btn = st.button("🔍 Run Multi-Agent Review", type="primary", use_container_width=True)
 
-    # ── RUN PIPELINE ─────────────────────────────────────────
     if run_btn:
-        if not task.strip():
-            st.error("Enter a task first.")
+        if not code_input.strip():
+            st.error("Paste some code first.")
         else:
             client = get_client()
             if not client:
-                st.error("API key not found. Add it in sidebar.")
+                st.error("API key not found. Add it in the sidebar.")
             else:
                 st.divider()
+                st.markdown("### Running Pipeline")
 
-                with st.spinner("Running single agent baseline..."):
-                    single_out = single_agent(client, task)
+                progress = st.progress(0)
+                status   = st.empty()
 
-                # Detect task type
-                with st.spinner("Detecting task type..."):
-                    try:
-                        import json
-                        raw_context = router_agent(client, task)
-                        clean = raw_context.strip()
-                        if clean.startswith("```"):
-                            clean = re.sub(r'```json|```', '', clean).strip()
-                        context_data = json.loads(clean)
-                        context = f"Task type: {context_data.get('task_type', 'general')}. Output format: {context_data.get('output_format', 'structured')}. Tone: {context_data.get('tone', 'helpful')}. Goal: {context_data.get('key_focus', task)}"
-                        st.caption(f"Detected: {context_data.get('task_type', 'general').replace('_', ' ').title()} task")
-                    except:
-                        context = ""
+                status.info("🔧 Step 1/6: Tool Agent — Running static analysis...")
+                tool_findings = tool_agent(code_input)
+                progress.progress(15)
 
-                st.markdown("**Running multi-agent pipeline...**")
-                c1, c2, c3 = st.columns(3)
+                if tool_findings:
+                    st.markdown(f"**Tool Agent found {len(tool_findings)} issues**")
+                    for f in tool_findings:
+                        sev_class = f"severity-{f['severity']}"
+                        st.markdown(f"""
+                        <div class="finding-card {sev_class}">
+                            <span class="sev-badge sev-{f['severity']}">{f['severity']}</span>
+                            <strong>{f['location']}</strong> — {f['message']}
+                            <br><small style="color:#666">Source: {f['agent']}</small>
+                        </div>""", unsafe_allow_html=True)
+                else:
+                    st.info("Tool Agent: No issues detected by static analysis.")
 
-                with c1:
-                    st.markdown("""<div class="agent-card">
-                        <div class="agent-label">Agent 01</div>
-                        <div class="agent-title">Planner</div>
-                    </div>""", unsafe_allow_html=True)
-                    with st.spinner(""):
-                        plan = planner_agent(client, task, context)
-                    st.success("Done")
+                sec_review = ""
+                if use_security:
+                    status.info("🛡️ Step 2/6: Security Reviewer — Checking vulnerabilities...")
+                    sec_review = security_reviewer(client, code_input, tool_findings)
+                progress.progress(30)
 
-                with c2:
-                    st.markdown("""<div class="agent-card">
-                        <div class="agent-label">Agent 02</div>
-                        <div class="agent-title">Executor</div>
-                    </div>""", unsafe_allow_html=True)
-                    with st.spinner(""):
-                        detailed = executor_agent(client, task, plan, context)
-                    st.success("Done")
+                corr_review = ""
+                if use_correctness:
+                    status.info("🐛 Step 3/6: Correctness Reviewer — Looking for bugs...")
+                    corr_review = correctness_reviewer(client, code_input, tool_findings)
+                progress.progress(50)
 
-                with c3:
-                    st.markdown("""<div class="agent-card">
-                        <div class="agent-label">Agent 03</div>
-                        <div class="agent-title">Reviewer</div>
-                    </div>""", unsafe_allow_html=True)
-                    with st.spinner(""):
-                        final = reviewer_agent(client, task, detailed, context)
-                    st.success("Done")
+                style_result = ""
+                if use_style:
+                    status.info("🎨 Step 4/6: Style Reviewer — Checking readability...")
+                    style_result = style_reviewer(client, code_input, tool_findings)
+                progress.progress(65)
 
+                debate_result = ""
+                if use_debate and sec_review and corr_review:
+                    status.info("⚖️ Step 5/6: Debate Agent — Comparing findings...")
+                    debate_result = debate_agent(client, sec_review, corr_review, code_input)
+                progress.progress(80)
 
-                single_score, single_bd = evaluate_output(single_out)
-                multi_score, multi_bd = evaluate_output(final)
-                diff = multi_score - single_score
+                status.info("📝 Step 6/6: Synthesizing final review...")
+                if debate_result:
+                    combined = debate_result
+                elif sec_review or corr_review:
+                    combined = f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}"
+                else:
+                    combined = ""
 
-                st.divider()
-                st.markdown("#### Score Comparison")
+                if combined:
+                    final_review = synthesizer_agent(client, combined, style_result, tool_findings)
+                else:
+                    final_review = style_result or "No review generated — enable at least one reviewer agent."
+                progress.progress(90)
 
-                sc1, sc2, sc3 = st.columns([5, 2, 5])
+                if use_verification and final_review:
+                    status.info("✅ Verifying findings against actual code...")
+                    final_review = verifier_agent(client, code_input, final_review)
+                progress.progress(100)
+                status.success("Pipeline complete!")
 
-                with sc1:
-                    st.markdown(f"""
-                    <div class="score-block score-block-single">
-                        <div class="score-label">Single Agent</div>
-                        <div class="score-num" style="color:#e05252">{single_score}</div>
-                        <div class="score-label">out of 25</div>
-                    </div>""", unsafe_allow_html=True)
-                    st.markdown("")
-                    for k, (v, note) in single_bd.items():
-                        pct = int(v / 5 * 100)
-                        st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="bar-container"><div class="bar-fill-single" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
+                # FIX: save final_review to session state so the follow-up chat appears
+                st.session_state["last_review"] = final_review
 
-                with sc2:
-                    color = "#52c478" if diff >= 0 else "#e05252"
-                    sign = "+" if diff >= 0 else ""
-                    st.markdown(f"""
-                    <div class="diff-block">
-                        <div class="score-label">Difference</div>
-                        <div class="diff-num" style="color:{color}">{sign}{diff}</div>
-                        <div class="score-label">points</div>
-                    </div>""", unsafe_allow_html=True)
+                with st.spinner("Running single agent baseline for comparison..."):
+                    single_out = single_agent_review(client, code_input)
 
-                with sc3:
-                    st.markdown(f"""
-                    <div class="score-block score-block-multi">
-                        <div class="score-label">Multi Agent</div>
-                        <div class="score-num" style="color:#52c478">{multi_score}</div>
-                        <div class="score-label">out of 25</div>
-                    </div>""", unsafe_allow_html=True)
-                    st.markdown("")
-                    for k, (v, note) in multi_bd.items():
-                        pct = int(v / 5 * 100)
-                        st.markdown(f'<div class="metric-row"><span class="metric-name">{k}</span><span class="metric-val">{v}/5</span></div>', unsafe_allow_html=True)
-                        st.markdown(f'<div class="bar-container"><div class="bar-fill-multi" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
+                with st.spinner("Evaluating review quality (LLM-as-Judge)..."):
+                    single_judge_raw = llm_as_judge(client, code_input, single_out)
+                    multi_judge_raw  = llm_as_judge(client, code_input, final_review)
+                    single_scores    = parse_judge_score(single_judge_raw)
+                    multi_scores     = parse_judge_score(multi_judge_raw)
 
                 st.divider()
-                st.markdown("#### Outputs")
-                out1, out2 = st.tabs(["Multi-Agent Output", "Single Agent Output"])
-                with out1:
-                    with st.expander("Planner Agent Output", expanded=False):
-                        st.markdown(plan)
-                    st.markdown('<div class="output-tag">Final Output -- After Reviewer</div>', unsafe_allow_html=True)
-                    st.markdown(final)
-                with out2:
+                st.markdown("### 📊 Score Comparison")
+
+                if single_scores and multi_scores:
+                    sc1, sc2, sc3 = st.columns([5, 2, 5])
+
+                    with sc1:
+                        st.markdown(f"""
+                        <div class="stat-card" style="border-color:#3a1a1a">
+                            <div class="stat-label">Single Agent</div>
+                            <div class="stat-num" style="color:#e05252">{single_scores['total']}</div>
+                            <div class="stat-label">/ 25</div>
+                        </div>""", unsafe_allow_html=True)
+                        dims = ["completeness", "accuracy", "actionability", "prioritization", "low_hallucination"]
+                        for dim in dims:
+                            v    = single_scores.get(dim, {}).get("score", 0)
+                            note = single_scores.get(dim, {}).get("note", "")
+                            st.caption(f"**{dim.replace('_', ' ').title()}**: {v}/5 — {note}")
+
+                    with sc2:
+                        diff  = multi_scores['total'] - single_scores['total']
+                        color = "#52c478" if diff >= 0 else "#e05252"
+                        sign  = "+" if diff >= 0 else ""
+                        st.markdown(f"""
+                        <div class="stat-card" style="border-color:#2a2a2a">
+                            <div class="stat-label">Delta</div>
+                            <div class="stat-num" style="color:{color}">{sign}{diff}</div>
+                        </div>""", unsafe_allow_html=True)
+
+                    with sc3:
+                        st.markdown(f"""
+                        <div class="stat-card" style="border-color:#1a3a1a">
+                            <div class="stat-label">Multi-Agent</div>
+                            <div class="stat-num" style="color:#52c478">{multi_scores['total']}</div>
+                            <div class="stat-label">/ 25</div>
+                        </div>""", unsafe_allow_html=True)
+                        for dim in dims:
+                            v    = multi_scores.get(dim, {}).get("score", 0)
+                            note = multi_scores.get(dim, {}).get("note", "")
+                            st.caption(f"**{dim.replace('_', ' ').title()}**: {v}/5 — {note}")
+
+                    save_review(code_input, single_scores['total'], multi_scores['total'])
+
+                st.divider()
+                st.markdown("### 📈 Finding Counts")
+
+                single_findings = count_findings(single_out)
+                multi_findings  = count_findings(final_review)
+
+                fig = go.Figure()
+                categories     = ['critical', 'warning', 'style', 'info']
+                colors_single  = ['#ff4444', '#ffaa00', '#4488ff', '#44bb88']
+                colors_multi   = ['#ff6666', '#ffcc44', '#6699ff', '#66ddaa']
+
+                fig.add_trace(go.Bar(
+                    name='Single Agent',
+                    x=[c.title() for c in categories],
+                    y=[single_findings.get(c, 0) for c in categories],
+                    marker_color=colors_single,
+                    opacity=0.7,
+                ))
+                fig.add_trace(go.Bar(
+                    name='Multi-Agent',
+                    x=[c.title() for c in categories],
+                    y=[multi_findings.get(c, 0) for c in categories],
+                    marker_color=colors_multi,
+                ))
+
+                fig.update_layout(
+                    barmode='group',
+                    title="Findings by Severity",
+                    yaxis_title="Count",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#ccc"),
+                    height=350,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+                st.divider()
+                st.markdown("### 📝 Full Reviews")
+
+                out_tab1, out_tab2, out_tab3 = st.tabs([
+                    "🏆 Multi-Agent Review",
+                    "👤 Single Agent Review",
+                    "⚖️ Debate Analysis"
+                ])
+
+                with out_tab1:
+                    st.markdown(final_review)
+                with out_tab2:
                     st.markdown(single_out)
+                with out_tab3:
+                    if debate_result:
+                        st.markdown(debate_result)
+                    else:
+                        st.info("Enable Debate Agent in sidebar to see this.")
 
-                save_to_memory(task, single_score, multi_score, final)
-                st.caption("Session saved.")
-
-                # Save to session for follow-up chat
-                if "chat_history" not in st.session_state:
-                    st.session_state.chat_history = []
-                st.session_state.chat_history.append({
-                    "role": "assistant",
-                    "content": final,
-                    "task": task,
-                    "score": multi_score
-                })
-                st.session_state.last_output = final
-                st.session_state.last_task = task
-                st.session_state.ran_once = True
-
-    # ── FOLLOW-UP CHAT ────────────────────────────────────────
-    # This is OUTSIDE run_btn so it persists across reruns
-    if st.session_state.get("ran_once"):
+    # FIX: follow-up chat now works because last_review is properly stored in session state
+    if st.session_state.get("last_review"):
         st.divider()
-        st.markdown("#### Continue the conversation")
-        st.caption("Ask anything: 'make it harder' / 'focus on step 3' / 'explain more' / 'new topic: machine learning'")
-
-        client = get_client()
-        followup = st.chat_input("Reply to refine the output...")
+        st.markdown("#### 💬 Ask about the review")
+        followup = st.chat_input("e.g., 'explain finding 3' / 'how to fix the SQL injection?'")
 
         if followup:
+            client = get_client()
             with st.chat_message("user"):
                 st.markdown(followup)
-
-            prev_output = st.session_state.get("last_output", "")
-            prev_task = st.session_state.get("last_task", "")
-
             with st.chat_message("assistant"):
-                if any(w in followup.lower() for w in ["new topic", "start over", "different topic"]):
-                    new_task = followup.replace("new topic:", "").replace("new topic", "").replace("start over", "").replace("different topic:", "").strip()
-                    if new_task:
-                        st.info(f"Starting fresh: {new_task}")
-                        with st.spinner("Running agents..."):
-                            new_plan = planner_agent(client, new_task)
-                            new_detailed = executor_agent(client, new_task, new_plan)
-                            new_final = reviewer_agent(client, new_task, new_detailed)
-                        st.markdown(new_final)
-                        new_score, _ = evaluate_output(new_final)
-                        st.session_state.last_output = new_final
-                        st.session_state.last_task = new_task
-                        st.session_state.chat_history.append({
-                            "role": "assistant",
-                            "content": new_final,
-                            "task": new_task,
-                            "score": new_score
-                        })
-                else:
-                    with st.spinner("Updating..."):
-                        updated = followup_agent(client, prev_task, prev_output, followup)
-                    st.markdown(updated)
-                    new_score, _ = evaluate_output(updated)
-                    st.caption(f"Updated score: {new_score}/25")
-                    st.session_state.last_output = updated
-                    if "chat_history" not in st.session_state:
-                        st.session_state.chat_history = []
-                    st.session_state.chat_history.append({
-                        "role": "assistant",
-                        "content": updated,
-                        "task": prev_task,
-                        "score": new_score
-                    })
-                    
+                response = call_llm(client,
+                    f"""You are a code review assistant. The user has received a code review
+and is asking a follow-up question. Answer based on the review context.
+
+Review:
+{st.session_state.get("last_review", "")}""",
+                    followup)
+                st.markdown(response)
+
+# ── TAB 2: ABLATION STUDY ───────────────────────────────────
 
 with tab2:
-    st.markdown('<p class="main-header">Ablation Study</p>', unsafe_allow_html=True)
-    st.markdown('<p class="main-sub">Which agent contributes most to output quality?</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-title">Ablation Study</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub">Which agent configuration yields the best cost-quality tradeoff?</p>', unsafe_allow_html=True)
 
     st.markdown("""
-    This experiment runs the same task through 4 different configurations
-    and compares scores to identify each agent's contribution.
+    **Methodology:** The same code is reviewed by 7 different agent configurations.
+    Each review is evaluated by an independent LLM judge on 5 dimensions (25 points total).
 
-    | Configuration | Agents Used |
-    |---|---|
-    | Experiment 1 | Single Agent only |
-    | Experiment 2 | Planner + Executor |
-    | Experiment 3 | Planner + Executor + Reviewer |
-    | Experiment 4 | Planner + Executor + Reviewer + Critic |
+    | Config | Agents Used | Purpose |
+    |---|---|---|
+    | 1. Single Agent | One LLM call | Baseline |
+    | 2. Tool Only | AST + Security Scanner | No LLM, pure static analysis |
+    | 3. Tool + Security | Tool Agent + Security Reviewer | One specialist |
+    | 4. Tool + Sec + Corr | + Correctness Reviewer | Two specialists |
+    | 5. Full (no debate) | + Style + Synthesizer | No deliberation |
+    | 6. Full + Debate | + Debate Agent | Deliberation mechanism |
+    | 7. Full + Debate + Verify | + Verifier | Hallucination reduction |
     """)
 
     st.divider()
 
-    ablation_task = st.text_input("Enter task for ablation study",
-        placeholder="e.g. Learn Python in 7 days",
-        key="ablation_task")
+    ablation_code = st.text_area("Enter code for ablation study",
+        value=SAMPLE_CODES.get("Vulnerable Web App", ""),
+        height=200,
+        key="ablation_code")
 
-    run_ablation_btn = st.button("Run Ablation Study", type="primary")
+    n_runs = st.slider("Number of runs per configuration", 1, 3, 1,
+                       help="More runs = more reliable results but takes longer")
+
+    run_ablation_btn = st.button("🧪 Run Ablation Study", type="primary")
 
     if run_ablation_btn:
-        if not ablation_task.strip():
-            st.error("Enter a task first.")
+        if not ablation_code.strip():
+            st.error("Enter code first.")
         else:
             client = get_client()
             if not client:
                 st.error("API key not found.")
             else:
-                st.info("Running 4 experiments... this takes about 60 seconds.")
+                st.warning(f"Running 7 configurations × {n_runs} run(s) each. This will take several minutes.")
 
-                with st.spinner("Running all 4 configurations..."):
-                    results = run_ablation(client, ablation_task)
+                with st.spinner("Running ablation study..."):
+                    results = run_ablation_study(client, ablation_code, n_runs)
 
                 st.divider()
-                st.markdown("### Results")
+                st.markdown("### 📊 Results")
 
-                configs = list(results.keys())
-                scores = [results[c]["score"] for c in configs]
+                cols   = st.columns(7)
+                colors = ["#e05252","#f5a623","#e8a435","#8bc34a","#4caf50","#2196f3","#9c27b0"]
 
-                # Score cards
-                c1, c2, c3, c4 = st.columns(4)
-                cols = [c1, c2, c3, c4]
-                colors = ["#e05252", "#f5a623", "#4a90d9", "#52c478"]
-
-                for i, (col, config) in enumerate(zip(cols, configs)):
+                for i, (col, (config, data)) in enumerate(zip(cols, results.items())):
                     with col:
                         st.markdown(f"""
-                        <div class="score-block" style="border:1px solid #2a2a2a;background:#111">
-                            <div class="score-label">Exp {i+1}</div>
-                            <div class="score-num" style="color:{colors[i]}">{scores[i]}</div>
-                            <div class="score-label">/ 25</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        <div class="stat-card" style="border-color:{colors[i]}44">
+                            <div class="stat-label">Config {i+1}</div>
+                            <div class="stat-num" style="color:{colors[i]};font-size:1.5rem">{data['avg_score']}</div>
+                            <div class="stat-label">/ 25</div>
+                        </div>""", unsafe_allow_html=True)
                         st.caption(config)
 
-                # Bar chart — NOW in the right place
-                import plotly.graph_objects as go
                 fig = go.Figure()
+                configs    = list(results.keys())
+                avg_scores = [results[c]["avg_score"] for c in configs]
+
                 fig.add_trace(go.Bar(
-                    x=configs,
-                    y=scores,
-                    marker_color=colors,
-                    text=scores,
+                    x=[f"C{i+1}" for i in range(len(configs))],
+                    y=avg_scores,
+                    marker_color=colors[:len(configs)],
+                    text=avg_scores,
                     textposition="outside",
                 ))
                 fig.update_layout(
-                    title="Score by Configuration",
-                    yaxis=dict(range=[0, 25], title="Score / 25"),
+                    title="Average Quality Score by Configuration",
+                    yaxis=dict(range=[0, 28], title="Score / 25"),
                     xaxis_title="Configuration",
                     plot_bgcolor="rgba(0,0,0,0)",
                     paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="#ffffff"),
+                    font=dict(color="#ccc"),
                     height=400,
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-                # Agent contribution analysis
                 st.divider()
-                st.markdown("### Agent Contribution Analysis")
+                st.markdown("### 🔬 Agent Contribution Analysis")
 
-                executor_contribution = scores[1] - scores[0]
-                reviewer_contribution = scores[2] - scores[1]
-                critic_contribution = scores[3] - scores[2]
+                scores_list   = [results[c]["avg_score"] for c in configs]
+                contributions = {}
 
-                a1, a2, a3 = st.columns(3)
-                with a1:
-                    st.metric("Executor adds", f"+{executor_contribution} pts", delta="vs Single Agent")
-                with a2:
-                    st.metric("Reviewer adds", f"+{reviewer_contribution} pts", delta="vs Planner+Executor")
-                with a3:
-                    st.metric("Critic adds", f"+{critic_contribution} pts", delta="vs 3-Agent Pipeline")
+                label_pairs = [
+                    ("Tool Agent",                 1, 0),
+                    ("Security Reviewer",          2, 1),
+                    ("Correctness Reviewer",       3, 2),
+                    ("Synthesizer (no debate)",    4, 3),
+                    ("Debate Mechanism",           5, 4),
+                    ("Verification Step",          6, 5),
+                ]
+                for label, hi, lo in label_pairs:
+                    if len(scores_list) > hi:
+                        contributions[label] = round(scores_list[hi] - scores_list[lo], 1)
 
-                contributions = {
-                    "Executor": executor_contribution,
-                    "Reviewer": reviewer_contribution,
-                    "Critic": critic_contribution
-                }
-                top_agent = max(contributions, key=contributions.get)
+                if contributions:
+                    c1, c2, c3 = st.columns(3)
+                    agents = list(contributions.keys())
+                    for i, col in enumerate([c1, c2, c3]):
+                        if i < len(agents):
+                            with col:
+                                delta = contributions[agents[i]]
+                                st.metric(agents[i], f"+{delta}" if delta >= 0 else str(delta),
+                                          delta=f"pts vs previous config")
+
+                fig2 = go.Figure()
+                for sev in ['critical', 'warning', 'style', 'info']:
+                    fig2.add_trace(go.Bar(
+                        name=sev.title(),
+                        x=configs,
+                        y=[results[c]["findings"].get(sev, 0) for c in configs],
+                    ))
+                fig2.update_layout(
+                    barmode='stack',
+                    title="Findings Count by Configuration",
+                    yaxis_title="Number of Findings",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#ccc"),
+                    height=400,
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+
+                if contributions:
+                    top_agent = max(contributions, key=contributions.get)
+                    top_delta = contributions[top_agent]
+                    st.success(f"🔑 Finding: **{top_agent}** contributes the most (+{top_delta} pts)")
+
+                    deltas     = list(contributions.values())
+                    decreasing = all(deltas[i] >= deltas[i+1] for i in range(len(deltas)-1))
+                    if decreasing:
+                        st.info("📉 Diminishing returns detected: each additional agent contributes less.")
+                    else:
+                        st.info("📈 Non-monotonic contribution: synergy effects detected.")
 
                 st.divider()
-                st.success(f"Finding: The {top_agent} agent contributes most to quality improvement (+{contributions[top_agent]} points)")
-                st.caption("Save this result for your report and viva.")
-
-                st.divider()
-                st.markdown("### Full Outputs")
+                st.markdown("### 📝 Full Review Outputs")
                 for config, data in results.items():
-                    with st.expander(f"{config} -- Score: {data['score']}/25"):
+                    with st.expander(f"{config} — Score: {data['avg_score']}/25"):
                         st.markdown(data["output"])
 
-                if "ablation_results" not in st.session_state:
-                    st.session_state.ablation_results = []
-                st.session_state.ablation_results.append({
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "task": ablation_task,
-                    "scores": {c: results[c]["score"] for c in configs}
-                })
-                
-                                
+# ── TAB 3: RESEARCH METHODOLOGY ──────────────────────────────
+
 with tab3:
-    st.markdown("## How It Works")
+    st.markdown('<p class="hero-title">Research Methodology</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub">How this project meets R&D standards</p>', unsafe_allow_html=True)
+
     st.markdown("""
-This system demonstrates a **Multi-Agent AI Architecture** where four specialized
-agents collaborate to produce measurably better output than a single agent alone.
+    ### Research Question
 
-### The 4 Agents
+    > Does multi-agent deliberation with tool use improve automated code review quality
+    > over single-agent review, and which agent configurations yield optimal cost-quality tradeoffs?
 
-**Agent 01 -- Planner**
-Receives the user task and breaks it into a structured step-by-step plan.
-Focuses only on planning -- no content generation.
+    ---
 
-**Agent 02 -- Executor**
-Receives the plan and expands each step with detailed content, resources, and exercises.
-Focuses only on execution -- no planning or reviewing.
-Ablation study shows this agent contributes the most -- averaging +13 points over single agent.
+    ### Hypotheses
 
-**Agent 03 -- Reviewer**
-Receives the full draft and improves it -- fixes gaps, adds motivation, adds summary.
-Focuses only on quality improvement.
+    | # | Hypothesis | How We Test It |
+    |---|---|---|
+    | H1 | Multi-agent > single-agent for code review | Ablation study with LLM-as-Judge evaluation |
+    | H2 | Specialist agents outperform generalist agents | Compare domain-specific vs general reviewers |
+    | H3 | Debate mechanism reduces hallucinated findings | Measure hallucination rate with/without debate |
+    | H4 | Verification step reduces false positives | Count findings removed by verifier |
+    | H5 | Diminishing returns beyond 3 agents | Marginal contribution per added agent |
 
-**Agent 04 -- Critic**
-Strictly reviews the final plan for factual errors, vague steps, and missing resources.
-Available in the Ablation Study tab for research comparison.
+    ---
 
-### How Agents Communicate
+    ### Evaluation Methodology
 
-Each agent's output becomes the next agent's input. This is called prompt chaining.
-No complex frameworks -- pure Python and direct API calls.
+    **Primary Metric: LLM-as-Judge (Zheng et al. 2023)**
 
-### Ablation Study
+    An independent LLM evaluates each review on 5 dimensions:
+    1. **Completeness** — Did it find all important issues?
+    2. **Accuracy** — Are findings actually correct?
+    3. **Actionability** — Are fixes specific and implementable?
+    4. **Prioritization** — Are critical issues highlighted first?
+    5. **Low Hallucination** — Do findings match the actual code?
 
-The Ablation Study tab runs 4 experiments on the same task:
-- Experiment 1: Single agent only
-- Experiment 2: Planner + Executor
-- Experiment 3: Planner + Executor + Reviewer
-- Experiment 4: Full pipeline + Critic
+    Each dimension: 1-5 scale. Total: 25 points.
 
-Finding from 5 task experiments: The Executor agent contributes the most to quality
-improvement (+13.2 points average). The Reviewer adds marginal improvement (+0.4 points).
-The Critic shows inconsistent results -- sometimes reducing scores -- suggesting the
-3-agent pipeline is optimal for most tasks.
+    ---
 
-### Scoring (out of 25)
+    ### Statistical Rigor
 
-Scored by Python code counting objective elements:
-- Structure: number of clear steps found
-- Resources: number of real URLs included
-- Exercises: number of hands-on exercises
-- Clarity: beginner-friendly language detected
-- Depth: action-oriented content density
+    - **Multiple runs** (n≥3) per configuration to measure variance
+    - **Same input code** across all configurations
+    - **Multiple code samples** (at least 5 different programs)
+    - **Report mean ± std** not just single numbers
 
-### Research Contribution
+    ---
 
-This project addresses 4 gaps identified in existing literature:
-1. No standard evaluation metric -- solved by objective 25-point scoring system
-2. No baseline comparison -- solved by single vs multi-agent comparison
-3. Low explainability -- solved by building from scratch with no frameworks
-4. Limited deployment -- solved by public Streamlit Cloud deployment
+    ### Threats to Validity
 
-### Key Finding
+    | Threat | Mitigation |
+    |---|---|
+    | LLM judge may be biased | Use human evaluation on subset |
+    | Same LLM family for judge and agents | Could use different model for judging |
+    | Small sample of code snippets | Test on real open-source repos |
+    | Prompt sensitivity | Test with multiple prompt variants |
+    """)
 
-The Executor agent is responsible for 87% of total quality improvement in the pipeline.
-Adding more agents beyond 3 shows diminishing returns -- a finding consistent with
-the law of diminishing marginal returns in agent pipeline design.
+# ── TAB 4: HOW IT WORKS ─────────────────────────────────────
+
+with tab4:
+    st.markdown("## How It Works")
+
+    st.markdown("""
+    ### The Problem with Single-Agent Code Review
+
+    When you ask one LLM to review code, it:
+    - Misses security issues because it's thinking about style
+    - Hallucinates bugs that don't exist
+    - Gives generic advice ("consider error handling")
+    - Has no way to verify its own findings
+
+    ### How Multi-Agent Review Fixes This
+
+    **Agent 1: Tool Agent (AST + Security Scanner)**
+    Parses Python AST and runs regex-based security pattern matching.
+    Provides ground truth that LLM agents can build on.
+
+    **Agent 2: Security Reviewer**
+    Specializes in vulnerabilities (OWASP, injection, auth).
+    Gets tool findings as context, not starting from scratch.
+
+    **Agent 3: Correctness Reviewer**
+    Specializes in logic bugs, race conditions, type errors.
+    Independent from Security Reviewer — independence makes debate valuable.
+
+    **Agent 4: Style Reviewer**
+    Checks naming, readability, maintainability.
+    Lower priority than security/correctness.
+
+    **Agent 5: Debate Agent** ⭐
+    Compares Security vs Correctness findings.
+    Identifies consensus (high confidence), unique findings (medium), contradictions.
+    Flags likely hallucinations.
+
+    **Agent 6: Synthesizer**
+    Merges all findings into one coherent review.
+    Deduplicates overlapping findings and prioritizes by severity.
+
+    **Agent 7: Verifier** ⭐
+    Checks each finding against the ACTUAL code.
+    Removes hallucinated findings — the #1 LLM review problem.
     """)
