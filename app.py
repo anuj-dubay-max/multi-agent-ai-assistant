@@ -254,7 +254,7 @@ def run_security_patterns(code):
 # AGENTS
 # ══════════════════════════════════════════════════════════════
 
-@st.cache_data
+
 def tool_agent(code):
     """Tool Agent: Runs static analysis tools and returns structured findings."""
     ast_findings = run_ast_analysis(code)
@@ -1169,35 +1169,8 @@ with tab1:
                     else:
                         st.info("Enable Debate Agent in sidebar to see this.")
                         
-    # Fix Agent
-    st.divider()
-    st.markdown("### Auto-Fix")
-    st.caption("Fix Agent rewrites your code based on the review findings.")
-
-    fix_btn = st.button("Generate Fixed Code", type="secondary")
-
     
-    if fix_btn:
-        if "last_review" not in st.session_state:
-            st.warning("Run review first before generating fixes.")
-        else:
-            client = get_client()
-            if not client:
-                st.error("API key not found.")
-            else:
-                fixed_code = fix_agent(client, code_input, st.session_state["last_review"])
-                st.session_state["fixed_code"] = fixed_code
-                st.session_state["original_code"] = code_input
-
-    if st.session_state.get("fixed_code"):
-        col_orig, col_fixed = st.columns(2)
-        with col_orig:
-            st.markdown("**Original Code**")
-            st.code(st.session_state.get("original_code", ""), language="python")
-        with col_fixed:
-            st.markdown("**Fixed Code**")
-            st.code(st.session_state.get("fixed_code", ""), language="python")
-
+    if st.session_state.get("Download latest fixed code"):
         st.download_button(
             label="Download Fixed Code",
             data=st.session_state.get("fixed_code", ""),
@@ -1208,22 +1181,20 @@ with tab1:
     # FIX: follow-up chat now works because last_review is properly stored in session state
     if st.session_state.get("last_review"):
         st.divider()
-        st.markdown("#### 💬 Ask about the review")
-        followup = st.chat_input("e.g., 'explain finding 3' / 'how to fix the SQL injection?'")
+        st.markdown("### Auto-Fix")
+        st.caption("Fix Agent rewrites your code based on the review findings.")
 
-        if followup:
+        fix_btn = st.button("Generate Fixed Code", type="secondary")
+
+        if fix_btn:
             client = get_client()
-            with st.chat_message("user"):
-                st.markdown(followup)
-            with st.chat_message("assistant"):
-                response = call_llm(client,
-                    f"""You are a code review assistant. The user has received a code review
-and is asking a follow-up question. Answer based on the review context.
-
-Review:
-{st.session_state.get("last_review", "")}""",
-                    followup)
-                st.markdown(response)
+            if not client:
+                st.error("API key not found.")
+            else:
+                with st.spinner("Fix Agent rewriting code..."):
+                    fixed_code = fix_agent(client, code_input, st.session_state["last_review"])
+                st.session_state["fixed_code"] = fixed_code
+                st.session_state["original_code"] = code_input
 
 # ── TAB 2: ABLATION STUDY ───────────────────────────────────
 
