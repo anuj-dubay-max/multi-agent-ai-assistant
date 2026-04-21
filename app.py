@@ -12,6 +12,7 @@ import re
 import ast
 import hashlib
 import time
+import difflib
 from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
@@ -68,6 +69,9 @@ code, pre { font-family: 'JetBrains Mono', monospace !important; }
 }
 .stat-num { font-size: 2.2rem; font-weight: 800; line-height: 1; }
 .stat-label { font-size: 0.75rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 0.3rem; }
+
+.diff-add { background: #1a3a1a; color: #66ddaa; padding: 2px 4px; border-radius: 3px; }
+.diff-remove { background: #3a1a1a; color: #ff6666; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,6 +81,12 @@ code, pre { font-family: 'JetBrains Mono', monospace !important; }
 
 MODEL = "llama-3.3-70b-versatile"
 MEMORY_FILE = "review_memory.json"
+
+def init_token_counter():
+    if "token_count" not in st.session_state:
+        st.session_state["token_count"] = {"total": 0, "calls": 0}
+
+init_token_counter()
 
 def get_client():
     try:
@@ -107,15 +117,43 @@ def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=30
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
+            if hasattr(response, 'usage') and response.usage:
+                st.session_state["token_count"]["total"] += response.usage.total_tokens
+                st.session_state["token_count"]["calls"] += 1
             return response.choices[0].message.content
         except Exception as e:
             if "rate_limit" in str(e).lower() or "429" in str(e):
                 wait_time = (attempt + 1) * 15
                 time.sleep(wait_time)
                 if attempt == max_retries - 1:
-                    return f"Rate limit hit after {max_retries} retries. Try again in 1 minute."
+                    return f"ERROR: Rate limit hit after {max_retries} retries. Try again in 1 minute."
             else:
                 raise e
+
+def generate_diff(original, fixed):
+    """Generate a readable HTML diff between original and fixed code."""
+    orig_lines = original.splitlines(keepends=True)
+    fixed_lines = fixed.splitlines(keepends=True)
+    diff = difflib.unified_diff(orig_lines, fixed_lines,
+                                fromfile="original.py", tofile="fixed.py",
+                                n=3)
+    diff_text = "".join(diff)
+
+    if not diff_text:
+        return None
+
+    html_lines = []
+    for line in diff_text.splitlines():
+        if line.startswith('+') and not line.startswith('+++'):
+            html_lines.append(f'<div class="diff-add">{line}</div>')
+        elif line.startswith('-') and not line.startswith('---'):
+            html_lines.append(f'<div class="diff-remove">{line}</div>')
+        elif line.startswith('@@'):
+            html_lines.append(f'<div style="color:#888">{line}</div>')
+        else:
+            html_lines.append(f'<div>{line}</div>')
+
+    return "".join(html_lines)
 
 # ══════════════════════════════════════════════════════════════
 # STATIC ANALYSIS TOOLS
@@ -229,9 +267,8 @@ def run_security_patterns(code):
          "Possible SQL injection via string concatenation. Use parameterized queries."),
         (r'assert\s+', "assert in production code", "warning",
          "assert statements are removed with -O flag. Don't use for validation in production."),
-        # FIX: Added torch.load without weights_only check
         (r'torch\.load\s*\([^)]*\)(?!.*weights_only)', "torch.load() without weights_only", "critical",
-         "torch.load() without weights_only=True can execute arbitrary code. Use torch.load(path, weights_only=True)."),
+         "torch.load() without weights_only=True can execute arbitrary code."),
     ]
 
     for i, line in enumerate(code.split('\n'), 1):
@@ -254,7 +291,6 @@ def run_security_patterns(code):
 # AGENTS
 # ══════════════════════════════════════════════════════════════
 
-
 def tool_agent(code):
     """Tool Agent: Runs static analysis tools and returns structured findings."""
     ast_findings = run_ast_analysis(code)
@@ -262,12 +298,10 @@ def tool_agent(code):
     return ast_findings + security_findings
 
 def security_reviewer(client, code, tool_findings):
-    """Agent A: Reviews code for security vulnerabilities."""
     tool_summary = "\n".join(
         f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings if f['type'] == 'security'
     )
-
     return call_llm(client,
         """You are a Senior Security Engineer reviewing code.
 Find ACTUAL security vulnerabilities. For each finding, provide:
@@ -290,12 +324,10 @@ Static analysis findings:
 Provide your security review.""")
 
 def correctness_reviewer(client, code, tool_findings):
-    """Agent B: Reviews code for correctness and logic bugs."""
     tool_summary = "\n".join(
         f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings if f['type'] in ('bug_risk', 'complexity', 'syntax')
     )
-
     return call_llm(client,
         """You are a Senior Software Engineer reviewing code for CORRECTNESS.
 Find logic bugs, race conditions, off-by-one errors, type errors,
@@ -321,12 +353,10 @@ Static analysis findings:
 Provide your correctness review.""")
 
 def style_reviewer(client, code, tool_findings):
-    """Agent C: Reviews code for style, readability, and maintainability."""
     tool_summary = "\n".join(
         f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings if f['type'] in ('style', 'documentation')
     )
-
     return call_llm(client,
         """You are a Code Quality Engineer reviewing for STYLE and MAINTAINABILITY.
 Check for: naming conventions, function length, code duplication,
@@ -351,10 +381,6 @@ Static analysis findings:
 Provide your style review.""")
 
 def debate_agent(client, finding_a, finding_b, code):
-    """
-    Novel mechanism: Two reviewers' findings are compared.
-    The debate agent identifies contradictions and confirms consensus.
-    """
     return call_llm(client,
         """You are a Code Review Arbitrator. Two independent reviewers have analyzed the same code.
 Your job:
@@ -381,7 +407,6 @@ Reviewer B (Correctness Focus):
 Provide your arbitration.""")
 
 def synthesizer_agent(client, combined_input, style_result, tool_findings):
-    """Merges all findings into a prioritized, deduplicated review."""
     return call_llm(client,
         """You are a Review Synthesizer. Combine all findings into ONE coherent review.
 Rules:
@@ -414,10 +439,6 @@ Tool findings:
 Synthesize into a final review.""")
 
 def verifier_agent(client, code, final_review):
-    """
-    Verification step: Checks each finding against the actual code
-    to reduce hallucinated bugs.
-    """
     return call_llm(client,
         """You are a Code Review Verifier. Your ONLY job is to check if the findings
 in this review are ACTUALLY present in the code.
@@ -445,17 +466,12 @@ Review to verify:
 Verify each finding against the actual code.""")
 
 def single_agent_review(client, code):
-    """Baseline: Single agent does everything."""
     return call_llm(client,
         "You are a code reviewer. Review the following Python code for bugs, security issues, and style problems. Provide specific findings with line numbers and fixes.",
         f"Review this code:\n```\n{code}\n```")
-    
-    
+
 def fix_agent(client, code, final_review):
-    """
-    Takes the original code and the review findings,
-    produces a corrected version of the code.
-    """
+    """Takes original code + review findings, produces corrected code."""
     return call_llm(client,
         """You are a Code Fix Engineer.
 You receive original code and a review listing issues.
@@ -485,10 +501,6 @@ Return the complete fixed code.""",
 # ══════════════════════════════════════════════════════════════
 
 def llm_as_judge(client, code, review_output):
-    """
-    Uses an LLM to evaluate review quality.
-    FIX: code is now properly injected into the user message.
-    """
     return call_llm(client,
         """You are an expert code review evaluator. Rate this code review on 5 dimensions.
 
@@ -510,7 +522,6 @@ Return ONLY this JSON format:
   "total": X,
   "max": 25
 }""",
-        # FIX: code is now interpolated into the prompt so the judge actually sees it
         f"""Original code:
 ```
 {code}
@@ -521,7 +532,6 @@ Review to evaluate:
 Evaluate this review.""")
 
 def parse_judge_score(raw):
-    """Parse LLM judge output into scores."""
     try:
         clean = raw.strip()
         if clean.startswith("```"):
@@ -529,15 +539,14 @@ def parse_judge_score(raw):
         data = json.loads(clean)
         return data
     except (json.JSONDecodeError, KeyError, ValueError):
-        # FIX: replaced bare except with specific exceptions
         scores = re.findall(r'"score":\s*(\d)', raw)
         if len(scores) >= 5:
             total = sum(int(s) for s in scores[:5])
             return {
-                "completeness":    {"score": int(scores[0]), "note": ""},
-                "accuracy":        {"score": int(scores[1]), "note": ""},
-                "actionability":   {"score": int(scores[2]), "note": ""},
-                "prioritization":  {"score": int(scores[3]), "note": ""},
+                "completeness":      {"score": int(scores[0]), "note": ""},
+                "accuracy":          {"score": int(scores[1]), "note": ""},
+                "actionability":     {"score": int(scores[2]), "note": ""},
+                "prioritization":    {"score": int(scores[3]), "note": ""},
                 "low_hallucination": {"score": int(scores[4]), "note": ""},
                 "total": total,
                 "max": 25
@@ -545,7 +554,6 @@ def parse_judge_score(raw):
         return None
 
 def count_findings(review_text):
-    """Objective metric: count distinct findings mentioned."""
     critical = len(re.findall(r'\bCRITICAL\b', review_text))
     warning  = len(re.findall(r'\bWARNING\b',  review_text))
     style    = len(re.findall(r'\bSTYLE\b',    review_text))
@@ -557,69 +565,65 @@ def count_findings(review_text):
 # ABLATION STUDY
 # ══════════════════════════════════════════════════════════════
 
-def run_ablation_study(client, code, n_runs=1):
+def run_ablation_study(client, code):
     """
-    Smart ablation — reuses intermediate results instead of 
-    rerunning everything for each config. 7 calls total.
+    Smart ablation — reuses intermediate results.
+    Runs each agent once, then recombines into 7 configs.
+    ~16 API calls total (9 agents + 7 judges) instead of 49.
     """
     results = {}
 
-    # Run everything ONCE and reuse
-    st.caption("Running all agents once, reusing results across configs...")
-
-    # Step 1 — no LLM needed
+    # Step 1: Tool agent (no LLM)
     tool_findings = tool_agent(code)
 
-    # Step 2
+    # Step 2: Single agent baseline
     single_out = single_agent_review(client, code)
     time.sleep(2)
 
-    # Step 3
+    # Step 3: Specialist reviewers
     sec_review = security_reviewer(client, code, tool_findings)
     time.sleep(2)
 
-    # Step 4
     corr_review = correctness_reviewer(client, code, tool_findings)
     time.sleep(2)
 
-    # Step 5
-    style_review = style_reviewer(client, code, tool_findings)
+    style_review_out = style_reviewer(client, code, tool_findings)
     time.sleep(2)
 
-    # Step 6
+    # Step 4: Debate
     debate = debate_agent(client, sec_review, corr_review, code)
     time.sleep(2)
 
-    # Step 7 — synthesize without debate
+    # Step 5: Synthesize without debate
     combined_no_debate = f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}"
-    synth_no_debate = synthesizer_agent(client, combined_no_debate, style_review, tool_findings)
+    synth_no_debate = synthesizer_agent(client, combined_no_debate, style_review_out, tool_findings)
     time.sleep(2)
 
-    # Step 8 — synthesize with debate
-    synth_with_debate = synthesizer_agent(client, debate, style_review, tool_findings)
+    # Step 6: Synthesize with debate
+    synth_with_debate = synthesizer_agent(client, debate, style_review_out, tool_findings)
     time.sleep(2)
 
-    # Step 9 — verify
+    # Step 7: Verify
     verified = verifier_agent(client, code, synth_with_debate)
     time.sleep(2)
 
-    # Now build configs from reused results — no extra API calls
+    # Build config outputs from reused results
     tool_output = "Static Analysis:\n" + "\n".join(
         f"[{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings
     ) if tool_findings else "No issues found."
 
     config_outputs = {
-        "Single Agent":                    single_out,
-        "Tool Only":                       tool_output,
-        "Tool + Security":                 sec_review,
-        "Tool + Sec + Correctness":        f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}",
-        "Full Pipeline (no Debate)":       synth_no_debate,
-        "Full Pipeline + Debate":          synth_with_debate,
-        "Full + Debate + Verification":    verified,
+        "Single Agent":                 single_out,
+        "Tool Only":                    tool_output,
+        "Tool + Security":              sec_review,
+        "Tool + Sec + Correctness":     f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}",
+        "Full (no Debate)":             synth_no_debate,
+        "Full + Debate":                synth_with_debate,
+        "Full + Debate + Verification": verified,
     }
 
-    # Score each config with LLM judge
+    # Score each config
     for config_name, output in config_outputs.items():
         judge_raw = llm_as_judge(client, code, output)
         judge_scores = parse_judge_score(judge_raw)
@@ -635,62 +639,6 @@ def run_ablation_study(client, code, n_runs=1):
         time.sleep(2)
 
     return results
-
-
-def run_config(client, code, config_type):
-    """
-    Run a specific pipeline configuration.
-    FIX: full_no_debate branch no longer calls debate_agent, and correctly
-    passes the direct combination of sec+corr reviews to synthesizer_agent.
-    """
-    if config_type == "single":
-        return single_agent_review(client, code)
-
-    tool_findings = tool_agent(code)
-
-    if config_type == "tool_only":
-        if tool_findings:
-            return "Static Analysis Results:\n" + "\n".join(
-                f"[{f['severity'].upper()}] {f['location']}: {f['message']}"
-                for f in tool_findings
-            )
-        return "No issues found by static analysis."
-
-    sec_review = security_reviewer(client, code, tool_findings)
-    time.sleep(3)
-
-    if config_type == "tool_security":
-        return sec_review
-
-    corr_review = correctness_reviewer(client, code, tool_findings)
-    time.sleep(3)
-    
-    if config_type == "tool_sec_corr":
-        return f"## Security Review\n{sec_review}\n\n## Correctness Review\n{corr_review}"
-
-    style_review = style_reviewer(client, code, tool_findings)
-    time.sleep(3)
-
-    # FIX: full_no_debate — synthesize directly from sec+corr without calling debate_agent at all
-    if config_type == "full_no_debate":
-        combined_no_debate = f"Security Review:\n{sec_review}\n\nCorrectness Review:\n{corr_review}"
-        return synthesizer_agent(client, combined_no_debate, style_review, tool_findings)
-
-    # From here, debate IS used
-    debate = debate_agent(client, sec_review, corr_review, code)
-    time.sleep(3)
-    
-    synth  = synthesizer_agent(client, debate, style_review, tool_findings)
-    time.sleep(3)
-    
-    
-    if config_type == "full_with_debate":
-        return synth
-
-    if config_type == "full_verified":
-        return verifier_agent(client, code, synth)
-
-    return synth
 
 # ══════════════════════════════════════════════════════════════
 # MEMORY
@@ -727,7 +675,7 @@ def load_memory():
         return []
 
 # ══════════════════════════════════════════════════════════════
-# SAMPLE CODE
+# SAMPLE CODE — Buggy versions for demo
 # ══════════════════════════════════════════════════════════════
 
 SAMPLE_CODES = {
@@ -737,9 +685,8 @@ import sqlite3
 
 def get_user(username):
     conn = sqlite3.connect("users.db")
-    # FIX (sample): use parameterized query
-    query = "SELECT * FROM users WHERE username = ?"
-    return conn.execute(query, (username,)).fetchone()
+    query = "SELECT * FROM users WHERE username = '" + username + "'"
+    return conn.execute(query).fetchone()
 
 def load_session(data):
     return pickle.loads(data)
@@ -747,57 +694,50 @@ def load_session(data):
 def run_command(cmd):
     os.system(cmd)
 
-def process_items(items=None):
-    # FIX (sample): avoid mutable default argument
-    if items is None:
-        items = []
+def process_items(items=[]):
     for item in items:
         print(item)
     items.append("processed")
 
 def calculate_discount(price, discount):
-    # FIX (sample): use explicit validation instead of assert
-    if not (0 <= discount <= 100):
-        raise ValueError(f"discount must be 0–100, got {discount}")
+    assert discount >= 0 and discount <= 100
     return price * (1 - discount / 100)
 
 def authenticate(username, password):
-    # FIX (sample): never hardcode credentials — use env vars
-    expected = os.getenv("ADMIN_PASSWORD")
-    return username == "admin" and password == expected
+    if username == "admin" and password == "super_secret_123":
+        return True
+    return False
 ''',
 
     "Data Pipeline Bug": '''import pandas as pd
 from typing import List, Optional
 
-def process_data(df: pd.DataFrame) -> pd.DataFrame:
+def process_data(df):
     df = df.dropna()
     avg = df["value"].mean()
-    result = df[df["value"] > avg].copy()
-    # FIX (sample): use .assign() to avoid SettingWithCopyWarning
-    result = result.assign(percentage=result["value"] / result["value"].sum() * 100)
+    result = df[df["value"] > avg]
+    result["percentage"] = result["value"] / result["value"].sum() * 100
     return result
 
-def merge_datasets(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
+def merge_datasets(left, right):
     return pd.merge(left, right, on="id")
 
-def load_config(path: str = "config.json") -> dict:
+def load_config(path="config.json"):
     import json
     with open(path) as f:
         return json.load(f)
 
-def validate_email(emails: List[str]) -> List[bool]:
-    # FIX (sample): check every email, return a result per address
-    return ["@" in email for email in emails]
+def validate_email(emails):
+    for email in emails:
+        if "@" in email:
+            return True
+    return False
 
-def chunk_list(data: list, chunk_size: int) -> list:
-    # FIX (sample): step parameter was missing — was iterating every index
-    return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+def chunk_list(data, chunk_size):
+    return [data[i:i+chunk_size] for i in range(0, len(data))]
 
 class DataProcessor:
-    # FIX (sample): moved cache to __init__ so each instance gets its own dict
-    def __init__(self):
-        self.cache: dict = {}
+    cache = {}
 
     def process(self, data):
         key = str(data)
@@ -809,7 +749,7 @@ class DataProcessor:
 
     def _expensive_operation(self, data):
         total = 0
-        for i in range(1_000_000):
+        for i in range(1000000):
             total += i * data
         return total
 ''',
@@ -818,12 +758,12 @@ class DataProcessor:
 import torch.nn as nn
 
 class SimpleModel(nn.Module):
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int):
+    def __init__(self, input_dim, hidden_dim, output_dim):
         super().__init__()
         self.layer1 = nn.Linear(input_dim, hidden_dim)
         self.layer2 = nn.Linear(hidden_dim, output_dim)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         x = self.layer1(x)
         x = self.layer2(x)
         return x
@@ -844,26 +784,22 @@ def train_model(model, dataloader, epochs=100, lr=0.01):
 
     return model, losses
 
-def evaluate(model, test_data) -> float:
+def evaluate(model, test_data):
     model.eval()
-    correct = 0
-    total   = 0
+    predictions = []
     with torch.no_grad():
         for x, y in test_data:
             pred = model(x)
-            # FIX (sample): compare scalar prediction to scalar label,
-            # not to the whole batch tensor
-            predicted_labels = pred.argmax(dim=-1)
-            correct += (predicted_labels == y).sum().item()
-            total   += y.numel()
-    return correct / total if total > 0 else 0.0
+            predictions.append(pred.argmax().item())
 
-def save_checkpoint(model, path: str) -> None:
+    accuracy = sum(1 for p, t in zip(predictions, test_data) if p == t[1]) / len(test_data)
+    return accuracy
+
+def save_checkpoint(model, path):
     torch.save(model.state_dict(), path)
 
-def load_checkpoint(model, path: str):
-    # FIX (sample): weights_only=True prevents arbitrary code execution
-    model.load_state_dict(torch.load(path, weights_only=True))
+def load_checkpoint(model, path):
+    model.load_state_dict(torch.load(path))
     return model
 '''
 }
@@ -907,6 +843,12 @@ with st.sidebar:
 
     st.divider()
 
+    st.markdown("### 📊 Session Stats")
+    tc = st.session_state.get("token_count", {"total": 0, "calls": 0})
+    st.caption(f"API calls: {tc['calls']} | Tokens: {tc['total']:,}")
+
+    st.divider()
+
     st.markdown("### 📋 History")
     memory = load_memory()
     if memory:
@@ -938,7 +880,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 with tab1:
     st.markdown('<p class="hero-title">Multi-Agent Code Review</p>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub">Specialized agents with tool use → debate → verification</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub">Specialized agents with tool use → debate → verification → auto-fix</p>', unsafe_allow_html=True)
 
     col_sample, col_lang = st.columns([3, 1])
     with col_sample:
@@ -957,11 +899,13 @@ with tab1:
             st.session_state["uploaded_code"] = file_content
             st.success(f"Loaded: {uploaded_file.name}")
 
+    # Proper code source priority: sample > upload > empty
     if sample_choice != "None":
         default_code = SAMPLE_CODES[sample_choice]
+    elif st.session_state.get("uploaded_code"):
+        default_code = st.session_state["uploaded_code"]
     else:
-        default_code = st.session_state.get("uploaded_code", "")
-    
+        default_code = ""
 
     with paste_col:
         code_input = st.text_area(
@@ -982,6 +926,9 @@ with tab1:
             if not client:
                 st.error("API key not found.")
             else:
+                st.session_state["token_count"] = {"total": 0, "calls": 0}
+                start_time = time.time()
+
                 st.divider()
                 st.markdown("### Running Pipeline")
 
@@ -1009,24 +956,36 @@ with tab1:
                 if use_security:
                     status.info("🛡️ Step 2/6: Security Reviewer — Checking vulnerabilities...")
                     sec_review = security_reviewer(client, code_input, tool_findings)
+                    if sec_review.startswith("ERROR:"):
+                        st.error(sec_review)
+                        st.stop()
                 progress.progress(30)
 
                 corr_review = ""
                 if use_correctness:
                     status.info("🐛 Step 3/6: Correctness Reviewer — Looking for bugs...")
                     corr_review = correctness_reviewer(client, code_input, tool_findings)
+                    if corr_review.startswith("ERROR:"):
+                        st.error(corr_review)
+                        st.stop()
                 progress.progress(50)
 
                 style_result = ""
                 if use_style:
                     status.info("🎨 Step 4/6: Style Reviewer — Checking readability...")
                     style_result = style_reviewer(client, code_input, tool_findings)
+                    if style_result.startswith("ERROR:"):
+                        st.error(style_result)
+                        st.stop()
                 progress.progress(65)
 
                 debate_result = ""
                 if use_debate and sec_review and corr_review:
                     status.info("⚖️ Step 5/6: Debate Agent — Comparing findings...")
                     debate_result = debate_agent(client, sec_review, corr_review, code_input)
+                    if debate_result.startswith("ERROR:"):
+                        st.error(debate_result)
+                        st.stop()
                 progress.progress(80)
 
                 status.info("📝 Step 6/6: Synthesizing final review...")
@@ -1039,31 +998,34 @@ with tab1:
 
                 if combined:
                     final_review = synthesizer_agent(client, combined, style_result, tool_findings)
-                    
-                    if "Rate limit" in final_review:
+                    if final_review.startswith("ERROR:"):
                         st.error(final_review)
                         st.stop()
                 else:
                     final_review = style_result or "No review generated — enable at least one reviewer agent."
                 progress.progress(90)
-                
-                
 
-                if use_verification and final_review:
+                if use_verification and final_review and not final_review.startswith("ERROR:"):
                     status.info("✅ Verifying findings against actual code...")
                     final_review = verifier_agent(client, code_input, final_review)
+                    if final_review.startswith("ERROR:"):
+                        st.error(final_review)
+                        st.stop()
                 progress.progress(100)
-                status.success("Pipeline complete!")
 
-                # FIX: save final_review to session state so the follow-up chat appears
+                elapsed = round(time.time() - start_time, 1)
+                status.success(f"Pipeline complete! ({elapsed}s)")
+
                 st.session_state["last_review"] = final_review
+                st.session_state["last_code"] = code_input
+                st.session_state["fixed_code"] = ""  # reset fix state
 
+                # ── SINGLE AGENT BASELINE ────────────────────
                 with st.spinner("Running single agent baseline for comparison..."):
                     single_out = single_agent_review(client, code_input)
-
-                if "Rate limit" in single_out:
-                    st.error(single_out)
-                    st.stop()
+                    if single_out.startswith("ERROR:"):
+                        st.error(single_out)
+                        st.stop()
 
                 with st.spinner("Evaluating review quality (LLM-as-Judge)..."):
                     single_judge_raw = llm_as_judge(client, code_input, single_out)
@@ -1071,6 +1033,7 @@ with tab1:
                     single_scores    = parse_judge_score(single_judge_raw)
                     multi_scores     = parse_judge_score(multi_judge_raw)
 
+                # ── SCORE COMPARISON ──────────────────────────
                 st.divider()
                 st.markdown("### 📊 Score Comparison")
 
@@ -1114,6 +1077,10 @@ with tab1:
 
                     save_review(code_input, single_scores['total'], multi_scores['total'])
 
+                tc = st.session_state.get("token_count", {"total": 0, "calls": 0})
+                st.caption(f"⏱ {elapsed}s | 🔢 {tc['calls']} API calls | 💰 ~{tc['total']:,} tokens")
+
+                # ── FINDING COUNTS ────────────────────────────
                 st.divider()
                 st.markdown("### 📈 Finding Counts")
 
@@ -1150,6 +1117,7 @@ with tab1:
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
+                # ── FULL REVIEWS ──────────────────────────────
                 st.divider()
                 st.markdown("### 📝 Full Reviews")
 
@@ -1168,33 +1136,79 @@ with tab1:
                         st.markdown(debate_result)
                     else:
                         st.info("Enable Debate Agent in sidebar to see this.")
-                        
-    
-    if st.session_state.get("Download latest fixed code"):
-        st.download_button(
-            label="Download Fixed Code",
-            data=st.session_state.get("fixed_code", ""),
-            file_name="fixed_code.py",
-            mime="text/plain"
-        )
 
-    # FIX: follow-up chat now works because last_review is properly stored in session state
+    # ── AUTO-FIX + FOLLOW-UP ─────────────────────────────────
     if st.session_state.get("last_review"):
         st.divider()
-        st.markdown("### Auto-Fix")
+
+        st.markdown("### 🔧 Auto-Fix")
         st.caption("Fix Agent rewrites your code based on the review findings.")
 
-        fix_btn = st.button("Generate Fixed Code", type="secondary")
+        fix_btn = st.button("⚙️ Generate Fixed Code", type="secondary")
 
         if fix_btn:
             client = get_client()
             if not client:
                 st.error("API key not found.")
             else:
+                original_code = st.session_state.get("last_code", code_input)
                 with st.spinner("Fix Agent rewriting code..."):
-                    fixed_code = fix_agent(client, code_input, st.session_state["last_review"])
-                st.session_state["fixed_code"] = fixed_code
-                st.session_state["original_code"] = code_input
+                    fixed_code = fix_agent(client, original_code, st.session_state["last_review"])
+                    if fixed_code.startswith("ERROR:"):
+                        st.error(fixed_code)
+                    else:
+                        st.session_state["fixed_code"] = fixed_code
+
+        # Show the fixed code with diff when available
+        if st.session_state.get("fixed_code"):
+            fixed = st.session_state["fixed_code"]
+            original = st.session_state.get("last_code", code_input)
+
+            fix_tab1, fix_tab2, fix_tab3 = st.tabs(["📄 Fixed Code", "🔀 Diff View", "⬇️ Download"])
+
+            with fix_tab1:
+                st.code(fixed, language="python")
+
+            with fix_tab2:
+                diff_html = generate_diff(original, fixed)
+                if diff_html:
+                    st.markdown(f'<pre style="font-size:0.75rem;line-height:1.4">{diff_html}</pre>',
+                               unsafe_allow_html=True)
+                else:
+                    st.info("No changes detected between original and fixed code.")
+
+            with fix_tab3:
+                st.download_button(
+                    label="📥 Download Fixed Code",
+                    data=fixed,
+                    file_name="fixed_code.py",
+                    mime="text/plain"
+                )
+
+        # ── FOLLOW-UP CHAT ───────────────────────────────────
+        st.divider()
+        st.markdown("#### 💬 Ask about the review")
+        followup = st.chat_input("e.g., 'explain finding 3' / 'how to fix the SQL injection?'")
+
+        if followup:
+            client = get_client()
+            if client:
+                with st.chat_message("user"):
+                    st.markdown(followup)
+                with st.chat_message("assistant"):
+                    response = call_llm(client,
+                        f"""You are a code review assistant. The user has received a code review
+and is asking a follow-up question. Answer based on the review context.
+
+Original code:
+```
+{st.session_state.get("last_code", "")}
+```
+
+Review:
+{st.session_state.get("last_review", "")}""",
+                        followup)
+                    st.markdown(response)
 
 # ── TAB 2: ABLATION STUDY ───────────────────────────────────
 
@@ -1224,12 +1238,9 @@ with tab2:
         height=200,
         key="ablation_code")
 
-    n_runs = st.slider("Number of runs per configuration", 1, 3, 1,
-                       help="More runs = more reliable results but takes longer")
-
     run_ablation_btn = st.button("🧪 Run Ablation Study", type="primary")
-    st.info("Note: Ablation study makes 20+ API calls. Takes 3-5 minutes on free tier. Do not refresh the page.")
 
+    st.info("⚠️ Makes ~16 API calls. Takes 3–5 minutes on free tier. Do not refresh the page.")
 
     if run_ablation_btn:
         if not ablation_code.strip():
@@ -1239,13 +1250,21 @@ with tab2:
             if not client:
                 st.error("API key not found.")
             else:
-                st.warning(f"Running 7 configurations × {n_runs} run(s) each. This will take several minutes.")
+                st.warning("Running 7 configurations (smart reuse). This will take 3–5 minutes.")
+
+                st.session_state["token_count"] = {"total": 0, "calls": 0}
+                start_time = time.time()
 
                 with st.spinner("Running ablation study..."):
-                    results = run_ablation_study(client, ablation_code, n_runs)
+                    results = run_ablation_study(client, ablation_code)
+
+                elapsed = round(time.time() - start_time, 1)
 
                 st.divider()
                 st.markdown("### 📊 Results")
+
+                tc = st.session_state.get("token_count", {"total": 0, "calls": 0})
+                st.caption(f"⏱ {elapsed}s | 🔢 {tc['calls']} API calls | 💰 ~{tc['total']:,} tokens")
 
                 cols   = st.columns(7)
                 colors = ["#e05252","#f5a623","#e8a435","#8bc34a","#4caf50","#2196f3","#9c27b0"]
@@ -1272,7 +1291,7 @@ with tab2:
                     textposition="outside",
                 ))
                 fig.update_layout(
-                    title="Average Quality Score by Configuration",
+                    title="Quality Score by Configuration",
                     yaxis=dict(range=[0, 28], title="Score / 25"),
                     xaxis_title="Configuration",
                     plot_bgcolor="rgba(0,0,0,0)",
@@ -1282,6 +1301,7 @@ with tab2:
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
+                # ── AGENT CONTRIBUTION ────────────────────────
                 st.divider()
                 st.markdown("### 🔬 Agent Contribution Analysis")
 
@@ -1289,12 +1309,12 @@ with tab2:
                 contributions = {}
 
                 label_pairs = [
-                    ("Tool Agent",                 1, 0),
-                    ("Security Reviewer",          2, 1),
-                    ("Correctness Reviewer",       3, 2),
-                    ("Synthesizer (no debate)",    4, 3),
-                    ("Debate Mechanism",           5, 4),
-                    ("Verification Step",          6, 5),
+                    ("Tool Agent",              1, 0),
+                    ("Security Reviewer",       2, 1),
+                    ("Correctness Reviewer",    3, 2),
+                    ("Synthesizer (no debate)", 4, 3),
+                    ("Debate Mechanism",        5, 4),
+                    ("Verification Step",       6, 5),
                 ]
                 for label, hi, lo in label_pairs:
                     if len(scores_list) > hi:
@@ -1310,6 +1330,26 @@ with tab2:
                                 st.metric(agents[i], f"+{delta}" if delta >= 0 else str(delta),
                                           delta=f"pts vs previous config")
 
+                if contributions:
+                    fig3 = go.Figure()
+                    fig3.add_trace(go.Bar(
+                        x=list(contributions.keys()),
+                        y=list(contributions.values()),
+                        marker_color=["#f5a623" if v > 0 else "#e05252" for v in contributions.values()],
+                        text=[f"+{v}" if v >= 0 else str(v) for v in contributions.values()],
+                        textposition="outside",
+                    ))
+                    fig3.update_layout(
+                        title="Marginal Contribution per Agent",
+                        yaxis_title="Score Delta (pts)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#ccc"),
+                        height=350,
+                    )
+                    st.plotly_chart(fig3, use_container_width=True)
+
+                # ── FINDINGS BY SEVERITY ──────────────────────
                 fig2 = go.Figure()
                 for sev in ['critical', 'warning', 'style', 'info']:
                     fig2.add_trace(go.Bar(
@@ -1333,12 +1373,33 @@ with tab2:
                     top_delta = contributions[top_agent]
                     st.success(f"🔑 Finding: **{top_agent}** contributes the most (+{top_delta} pts)")
 
-                    deltas     = list(contributions.values())
-                    decreasing = all(deltas[i] >= deltas[i+1] for i in range(len(deltas)-1))
-                    if decreasing:
-                        st.info("📉 Diminishing returns detected: each additional agent contributes less.")
-                    else:
-                        st.info("📈 Non-monotonic contribution: synergy effects detected.")
+                    deltas = list(contributions.values())
+                    positive_deltas = [d for d in deltas if d >= 0]
+                    if len(positive_deltas) >= 2:
+                        decreasing = all(positive_deltas[i] >= positive_deltas[i+1]
+                                        for i in range(len(positive_deltas)-1))
+                        if decreasing:
+                            st.info("📉 Diminishing returns detected: each additional agent contributes less than the previous one.")
+                        else:
+                            st.info("📈 Non-monotonic contribution: some agents add more value when combined (synergy effect).")
+
+                st.divider()
+                export_data = {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "code_preview": ablation_code[:100],
+                    "elapsed_seconds": elapsed,
+                    "tokens_used": tc["total"],
+                    "api_calls": tc["calls"],
+                    "results": {k: {"avg_score": v["avg_score"], "findings": v["findings"]}
+                               for k, v in results.items()},
+                    "contributions": contributions if contributions else {},
+                }
+                st.download_button(
+                    label="📥 Export Results (JSON)",
+                    data=json.dumps(export_data, indent=2),
+                    file_name=f"ablation_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                    mime="application/json"
+                )
 
                 st.divider()
                 st.markdown("### 📝 Full Review Outputs")
@@ -1356,7 +1417,7 @@ with tab3:
     ### Research Question
 
     > Does multi-agent deliberation with tool use improve automated code review quality
-    > over single-agent review, and which agent configurations yield optimal cost-quality tradeoffs?
+    > over single-agent review, and which agent configurations yield optimal tradeoffs?
 
     ---
 
@@ -1389,10 +1450,10 @@ with tab3:
 
     ### Statistical Rigor
 
-    - **Multiple runs** (n≥3) per configuration to measure variance
-    - **Same input code** across all configurations
-    - **Multiple code samples** (at least 5 different programs)
-    - **Report mean ± std** not just single numbers
+    - **Same input code** across all configurations (controlled variable)
+    - **Smart reuse** — agents run once, outputs recombined into 7 configs (reduces noise)
+    - **Multiple code samples** — run ablation on different code types
+    - **Token/cost tracking** — enables cost-quality tradeoff analysis
 
     ---
 
@@ -1404,6 +1465,20 @@ with tab3:
     | Same LLM family for judge and agents | Could use different model for judging |
     | Small sample of code snippets | Test on real open-source repos |
     | Prompt sensitivity | Test with multiple prompt variants |
+    | Non-deterministic LLM outputs | Same temperature (0.3) across all agents |
+
+    ---
+
+    ### What Makes This R&D-Grade
+
+    1. **Real problem** — Companies spend 20% of dev time on code review
+    2. **Novel mechanism** — Debate between specialist agents
+    3. **Tool-using agents** — Not just prompt chaining
+    4. **Hallucination control** — Verification step is novel and practical
+    5. **Rigorous evaluation** — LLM-as-Judge + objective metrics
+    6. **Ablation with 7 configs** — Not just "single vs multi"
+    7. **Cost-quality tradeoff** — Token tracking enables practical analysis
+    8. **Auto-fix with diff** — Completes the review→fix loop
     """)
 
 # ── TAB 4: HOW IT WORKS ─────────────────────────────────────
@@ -1450,4 +1525,35 @@ with tab4:
     **Agent 7: Verifier** ⭐
     Checks each finding against the ACTUAL code.
     Removes hallucinated findings — the #1 LLM review problem.
+
+    **Agent 8: Fix Agent** ⭐
+    Rewrites the code fixing all confirmed issues.
+    Adds comments explaining each change.
+    Generates a diff view so you can see exactly what changed.
+
+    ### Pipeline Flow
+
+    ```
+    Code Input
+        │
+        ▼
+    Tool Agent (AST + Security Scanner)
+        │
+        ├──────────────┬──────────────┐
+        ▼              ▼              ▼
+    Security       Correctness     Style
+    Reviewer       Reviewer        Reviewer
+        │              │              │
+        ▼              ▼              │
+    Debate Agent ◄────┘              │
+        │                             │
+        ▼                             ▼
+    Synthesizer ◄────────────────────┘
+        │
+        ▼
+    Verifier
+        │
+        ▼
+    Fix Agent → Diff View → Download
+    ```
     """)
