@@ -254,6 +254,7 @@ def run_security_patterns(code):
 # AGENTS
 # ══════════════════════════════════════════════════════════════
 
+@st.cache_data
 def tool_agent(code):
     """Tool Agent: Runs static analysis tools and returns structured findings."""
     ast_findings = run_ast_analysis(code)
@@ -448,6 +449,36 @@ def single_agent_review(client, code):
     return call_llm(client,
         "You are a code reviewer. Review the following Python code for bugs, security issues, and style problems. Provide specific findings with line numbers and fixes.",
         f"Review this code:\n```\n{code}\n```")
+    
+    
+def fix_agent(client, code, final_review):
+    """
+    Takes the original code and the review findings,
+    produces a corrected version of the code.
+    """
+    return call_llm(client,
+        """You are a Code Fix Engineer.
+You receive original code and a review listing issues.
+Your job: rewrite the COMPLETE corrected code.
+
+Rules:
+1. Fix ALL critical and warning issues found in the review
+2. Keep the same structure and logic — only fix what's broken
+3. Add a comment above each fix explaining what you changed
+4. Do NOT change code that wasn't flagged
+5. Return ONLY the corrected Python code, no explanation outside the code""",
+        f"""Original code:
+```python
+{code}
+```
+
+Review findings:
+{final_review}
+
+Return the complete fixed code.""",
+        temperature=0.2,
+        max_tokens=4000
+    )
 
 # ══════════════════════════════════════════════════════════════
 # EVALUATION
@@ -917,13 +948,29 @@ with tab1:
         language = st.selectbox("Language", ["Python", "JavaScript", "Java", "Other"],
                                 key="lang_select")
 
-    code_input = st.text_area(
-        "Paste your code here",
-        value=SAMPLE_CODES.get(sample_choice, ""),
-        height=250,
-        placeholder="def process_data(items=[]):\n    ...",
-        key="code_input"
-    )
+    upload_col, paste_col = st.columns([1, 3])
+
+    with upload_col:
+        uploaded_file = st.file_uploader("Upload .py file", type=["py", "txt"])
+        if uploaded_file:
+            file_content = uploaded_file.read().decode("utf-8")
+            st.session_state["uploaded_code"] = file_content
+            st.success(f"Loaded: {uploaded_file.name}")
+
+    if sample_choice != "None":
+        default_code = SAMPLE_CODES[sample_choice]
+    else:
+        default_code = st.session_state.get("uploaded_code", "")
+    
+
+    with paste_col:
+        code_input = st.text_area(
+            "Paste your code",
+            value=default_code,
+            height=250,
+            placeholder="Paste Python code here...",
+            key="cr_code"
+        )
 
     run_btn = st.button("🔍 Run Multi-Agent Review", type="primary", use_container_width=True)
 
@@ -933,7 +980,7 @@ with tab1:
         else:
             client = get_client()
             if not client:
-                st.error("API key not found. Add it in the sidebar.")
+                st.error("API key not found.")
             else:
                 st.divider()
                 st.markdown("### Running Pipeline")
@@ -992,9 +1039,15 @@ with tab1:
 
                 if combined:
                     final_review = synthesizer_agent(client, combined, style_result, tool_findings)
+                    
+                    if "Rate limit" in final_review:
+                        st.error(final_review)
+                        st.stop()
                 else:
                     final_review = style_result or "No review generated — enable at least one reviewer agent."
                 progress.progress(90)
+                
+                
 
                 if use_verification and final_review:
                     status.info("✅ Verifying findings against actual code...")
@@ -1007,6 +1060,10 @@ with tab1:
 
                 with st.spinner("Running single agent baseline for comparison..."):
                     single_out = single_agent_review(client, code_input)
+
+                if "Rate limit" in single_out:
+                    st.error(single_out)
+                    st.stop()
 
                 with st.spinner("Evaluating review quality (LLM-as-Judge)..."):
                     single_judge_raw = llm_as_judge(client, code_input, single_out)
@@ -1111,6 +1168,42 @@ with tab1:
                         st.markdown(debate_result)
                     else:
                         st.info("Enable Debate Agent in sidebar to see this.")
+                        
+    # Fix Agent
+    st.divider()
+    st.markdown("### Auto-Fix")
+    st.caption("Fix Agent rewrites your code based on the review findings.")
+
+    fix_btn = st.button("Generate Fixed Code", type="secondary")
+
+    
+    if fix_btn:
+        if "last_review" not in st.session_state:
+            st.warning("Run review first before generating fixes.")
+        else:
+            client = get_client()
+            if not client:
+                st.error("API key not found.")
+            else:
+                fixed_code = fix_agent(client, code_input, st.session_state["last_review"])
+                st.session_state["fixed_code"] = fixed_code
+                st.session_state["original_code"] = code_input
+
+    if st.session_state.get("fixed_code"):
+        col_orig, col_fixed = st.columns(2)
+        with col_orig:
+            st.markdown("**Original Code**")
+            st.code(st.session_state.get("original_code", ""), language="python")
+        with col_fixed:
+            st.markdown("**Fixed Code**")
+            st.code(st.session_state.get("fixed_code", ""), language="python")
+
+        st.download_button(
+            label="Download Fixed Code",
+            data=st.session_state.get("fixed_code", ""),
+            file_name="fixed_code.py",
+            mime="text/plain"
+        )
 
     # FIX: follow-up chat now works because last_review is properly stored in session state
     if st.session_state.get("last_review"):
