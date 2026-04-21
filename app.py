@@ -95,17 +95,27 @@ def get_client():
     return Groq(api_key=api_key)
 
 def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=3000):
-    """Low temperature for review tasks — we want precision, not creativity."""
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_message},
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    return response.choices[0].message.content
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_message},
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            if "rate_limit" in str(e).lower() or "429" in str(e):
+                wait_time = (attempt + 1) * 15
+                time.sleep(wait_time)
+                if attempt == max_retries - 1:
+                    return f"Rate limit hit after {max_retries} retries. Try again in 1 minute."
+            else:
+                raise e
 
 # ══════════════════════════════════════════════════════════════
 # STATIC ANALYSIS TOOLS
@@ -546,7 +556,7 @@ def run_ablation_study(client, code, n_runs=1):
             all_scores.append(judge_scores["total"] if judge_scores else 0)
 
             # FIX: increased sleep to reduce rate-limit errors
-            time.sleep(4)
+            time.sleep(6)
 
         avg_score = sum(all_scores) / len(all_scores) if all_scores else 0
         findings  = count_findings(all_outputs[-1]) if all_outputs else {}
@@ -588,16 +598,19 @@ def run_config(client, code, config_type):
         return "No issues found by static analysis."
 
     sec_review = security_reviewer(client, code, tool_findings)
+    time.sleep(3)
 
     if config_type == "tool_security":
         return sec_review
 
     corr_review = correctness_reviewer(client, code, tool_findings)
-
+    time.sleep(3)
+    
     if config_type == "tool_sec_corr":
         return f"## Security Review\n{sec_review}\n\n## Correctness Review\n{corr_review}"
 
     style_review = style_reviewer(client, code, tool_findings)
+    time.sleep(3)
 
     # FIX: full_no_debate — synthesize directly from sec+corr without calling debate_agent at all
     if config_type == "full_no_debate":
@@ -606,8 +619,12 @@ def run_config(client, code, config_type):
 
     # From here, debate IS used
     debate = debate_agent(client, sec_review, corr_review, code)
+    time.sleep(3)
+    
     synth  = synthesizer_agent(client, debate, style_review, tool_findings)
-
+    time.sleep(3)
+    
+    
     if config_type == "full_with_debate":
         return synth
 
@@ -1119,6 +1136,8 @@ with tab2:
                        help="More runs = more reliable results but takes longer")
 
     run_ablation_btn = st.button("🧪 Run Ablation Study", type="primary")
+    st.info("Note: Ablation study makes 20+ API calls. Takes 3-5 minutes on free tier. Do not refresh the page.")
+
 
     if run_ablation_btn:
         if not ablation_code.strip():
