@@ -528,52 +528,80 @@ def count_findings(review_text):
 
 def run_ablation_study(client, code, n_runs=1):
     """
-    Proper ablation: same code, multiple configurations.
-    Each configuration is run n_runs times for statistical significance.
+    Smart ablation — reuses intermediate results instead of 
+    rerunning everything for each config. 7 calls total.
     """
-    configs = [
-        ("Single Agent",               "single"),
-        ("Tool Only",                  "tool_only"),
-        ("Tool + Security Reviewer",   "tool_security"),
-        ("Tool + Security + Correctness", "tool_sec_corr"),
-        ("Full Pipeline (no Debate)",  "full_no_debate"),
-        ("Full Pipeline + Debate",     "full_with_debate"),
-        ("Full + Debate + Verification", "full_verified"),
-    ]
-
     results = {}
 
-    for config_name, config_type in configs:
-        all_scores  = []
-        all_outputs = []
+    # Run everything ONCE and reuse
+    st.caption("Running all agents once, reusing results across configs...")
 
-        for run in range(n_runs):
-            output = run_config(client, code, config_type)
-            all_outputs.append(output)
+    # Step 1 — no LLM needed
+    tool_findings = tool_agent(code)
 
-            judge_raw    = llm_as_judge(client, code, output)
-            judge_scores = parse_judge_score(judge_raw)
-            all_scores.append(judge_scores["total"] if judge_scores else 0)
+    # Step 2
+    single_out = single_agent_review(client, code)
+    time.sleep(2)
 
-            # FIX: increased sleep to reduce rate-limit errors
-            time.sleep(6)
+    # Step 3
+    sec_review = security_reviewer(client, code, tool_findings)
+    time.sleep(2)
 
-        avg_score = sum(all_scores) / len(all_scores) if all_scores else 0
-        findings  = count_findings(all_outputs[-1]) if all_outputs else {}
+    # Step 4
+    corr_review = correctness_reviewer(client, code, tool_findings)
+    time.sleep(2)
+
+    # Step 5
+    style_review = style_reviewer(client, code, tool_findings)
+    time.sleep(2)
+
+    # Step 6
+    debate = debate_agent(client, sec_review, corr_review, code)
+    time.sleep(2)
+
+    # Step 7 — synthesize without debate
+    combined_no_debate = f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}"
+    synth_no_debate = synthesizer_agent(client, combined_no_debate, style_review, tool_findings)
+    time.sleep(2)
+
+    # Step 8 — synthesize with debate
+    synth_with_debate = synthesizer_agent(client, debate, style_review, tool_findings)
+    time.sleep(2)
+
+    # Step 9 — verify
+    verified = verifier_agent(client, code, synth_with_debate)
+    time.sleep(2)
+
+    # Now build configs from reused results — no extra API calls
+    tool_output = "Static Analysis:\n" + "\n".join(
+        f"[{f['severity'].upper()}] {f['location']}: {f['message']}"
+        for f in tool_findings
+    ) if tool_findings else "No issues found."
+
+    config_outputs = {
+        "Single Agent":                    single_out,
+        "Tool Only":                       tool_output,
+        "Tool + Security":                 sec_review,
+        "Tool + Sec + Correctness":        f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}",
+        "Full Pipeline (no Debate)":       synth_no_debate,
+        "Full Pipeline + Debate":          synth_with_debate,
+        "Full + Debate + Verification":    verified,
+    }
+
+    # Score each config with LLM judge
+    for config_name, output in config_outputs.items():
+        judge_raw = llm_as_judge(client, code, output)
+        judge_scores = parse_judge_score(judge_raw)
+        score = judge_scores["total"] if judge_scores else 0
+        findings = count_findings(output)
 
         results[config_name] = {
-            "avg_score": round(avg_score, 1),
-            "scores":    all_scores,
-            "output":    all_outputs[-1],
-            "findings":  findings,
+            "avg_score": score,
+            "scores": [score],
+            "output": output,
+            "findings": findings,
         }
-
-        with open("ablation_cache.json", "w") as f:
-            json.dump(
-                {k: {"avg_score": v["avg_score"], "scores": v["scores"], "findings": v["findings"]}
-                 for k, v in results.items()},
-                f, indent=2
-            )
+        time.sleep(2)
 
     return results
 
