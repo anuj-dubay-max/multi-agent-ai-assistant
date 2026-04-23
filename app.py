@@ -342,20 +342,18 @@ def fix_agent(client, code, final_review):
 # ══════════════════════════════════════════════════════════════
 
 def llm_as_judge(client, code, review_output):
+    """Evaluate review quality. Uses low max_tokens since output is just JSON."""
+    # Truncate review to save tokens (judge doesn't need 3000-word reviews)
+    truncated_review = review_output[:2000] if len(review_output) > 2000 else review_output
+    
     return call_llm(client,
-        """You are an expert code review evaluator. Rate this code review on 5 dimensions.
-For each dimension give a score from 1-5 and a one-line justification.
-
-1. COMPLETENESS: Did it find all important issues? (1=missed everything, 5=found all major)
-2. ACCURACY: Are the findings actually correct? (1=mostly wrong, 5=all verified)
-3. ACTIONABILITY: Are the fixes specific and implementable? (1=vague, 5=copy-paste fixes)
-4. PRIORITIZATION: Are critical issues highlighted first? (1=no ordering, 5=clear priority)
-5. LOW_HALLUCINATION: Do findings match the actual code? (1=many hallucinated, 5=all verified)
-
-IMPORTANT: Return ONLY valid JSON, no other text. Use this exact format:
-{"completeness":{"score":X,"note":"..."},"accuracy":{"score":X,"note":"..."},"actionability":{"score":X,"note":"..."},"prioritization":{"score":X,"note":"..."},"low_hallucination":{"score":X,"note":"..."},"total":X,"max":25}""",
-        f"Original code:\n```\n{code}\n```\nReview to evaluate:\n{review_output}\n\nEvaluate this review. Return ONLY the JSON.")
-
+        """Rate this code review 1-5 on: completeness, accuracy, actionability, prioritization, low_hallucination.
+Return ONLY JSON: {"completeness":{"score":X,"note":"..."},"accuracy":{"score":X,"note":"..."},"actionability":{"score":X,"note":"..."},"prioritization":{"score":X,"note":"..."},"low_hallucination":{"score":X,"note":"..."},"total":X,"max":25}""",
+        f"Code:\n```\n{code}\n```\nReview:\n{truncated_review}\n\nRate this review. JSON only.",
+        temperature=0.2,
+        max_tokens=500)  
+    
+    
 def parse_judge_score(raw):
     """
     FIX: Much more robust parsing. Tries 4 strategies before giving up.
@@ -424,14 +422,40 @@ def parse_judge_score(raw):
     return None
 
 def count_findings(review_text):
+    """Count findings in both multi-agent format (CRITICAL) and 
+    single-agent format (SQL Injection, Security Issue, etc.)"""
     if not review_text:
         return {"critical": 0, "warning": 0, "style": 0, "info": 0, "total": 0}
-    critical = len(re.findall(r'\bCRITICAL\b', review_text))
-    warning  = len(re.findall(r'\bWARNING\b',  review_text))
-    style    = len(re.findall(r'\bSTYLE\b',    review_text))
-    info     = len(re.findall(r'\bINFO\b',     review_text))
-    return {"critical": critical, "warning": warning, "style": style, "info": info, "total": critical+warning+style+info}
-
+    
+    # Multi-agent format: exact CRITICAL/WARNING/STYLE/INFO keywords
+    critical_kw = len(re.findall(r'\bCRITICAL\b', review_text))
+    warning_kw  = len(re.findall(r'\bWARNING\b',  review_text))
+    style_kw    = len(re.findall(r'\bSTYLE\b',    review_text))
+    info_kw     = len(re.findall(r'\bINFO\b',     review_text))
+    
+    # Single-agent format: natural language patterns
+    critical_nat = len(re.findall(
+        r'(?i)(sql injection|arbitrary code execution|command injection|'
+        r'hardcoded password|hardcoded api key|pickle.*risk|'
+        r'security vulnerability|security risk.*critical)', review_text))
+    warning_nat = len(re.findall(
+        r'(?i)(mutable default|assert.*production|unsafe|'
+        r'security risk|potential.*(bug|issue)|vulnerable)', review_text))
+    style_nat = len(re.findall(
+        r'(?i)(best practice|type hint|docstring|magic string|'
+        r'naming convention|code organization|readability)', review_text))
+    info_nat = len(re.findall(
+        r'(?i)(recommendation|consider|suggestion|additional|'
+        r'error handling|input validation)', review_text))
+    
+    critical = max(critical_kw, critical_nat)
+    warning  = max(warning_kw, warning_nat)
+    style    = max(style_kw, style_nat)
+    info     = max(info_kw, info_nat)
+    
+    return {"critical": critical, "warning": warning, "style": style, "info": info,
+            "total": critical + warning + style + info}
+    
 # ══════════════════════════════════════════════════════════════
 # ABLATION STUDY — FIX: Robust, cached, batch-capable
 # ══════════════════════════════════════════════════════════════
@@ -957,7 +981,7 @@ with tab1:
                     single_scores    = parse_judge_score(single_judge_raw)
                     multi_scores     = parse_judge_score(multi_judge_raw)
 
-                # ── FIX: SAVE EVERYTHING TO SESSION STATE ──
+                                # ── FIX: SAVE EVERYTHING TO SESSION STATE ──
                 st.session_state["review_results"] = {
                     "final_review": final_review,
                     "single_out": single_out,
@@ -966,8 +990,8 @@ with tab1:
                     "sec_review": sec_review,
                     "corr_review": corr_review,
                     "style_result": style_result,
-                    "single_scores": single_scores,
-                    "multi_scores": multi_scores,
+                    "single_scores": None,  # FIX: Judge runs separately
+                    "multi_scores": None,
                     "elapsed": elapsed,
                     "code_input": code_input,
                 }
@@ -976,8 +1000,6 @@ with tab1:
                 st.session_state["fixed_code"] = ""
 
     # ── FIX: DISPLAY RESULTS FROM SESSION STATE ──
-    # This block runs EVERY time, not just when button is clicked
-    # So results survive tab switching
     results = st.session_state.get("review_results")
 
     if results:
@@ -985,8 +1007,11 @@ with tab1:
         single_out    = results["single_out"]
         debate_result = results["debate_result"]
         tool_findings = results["tool_findings"]
-        single_scores = results["single_scores"]
-        multi_scores  = results["multi_scores"]
+        sec_review    = results.get("sec_review", "")
+        corr_review   = results.get("corr_review", "")
+        style_result  = results.get("style_result", "")
+        single_scores = results.get("single_scores")
+        multi_scores  = results.get("multi_scores")
         elapsed       = results["elapsed"]
         code_used     = results["code_input"]
 
@@ -1003,10 +1028,11 @@ with tab1:
                     <br><small style="color:#666">Source: {f['agent']}</small></div>""",
                     unsafe_allow_html=True)
 
-        # ── SCORE COMPARISON ──
+        # ── JUDGE EVALUATION (separate button) ──
         st.markdown("### 📊 Score Comparison")
-
+        
         if single_scores and multi_scores:
+            # Already evaluated — show scores
             sc1, sc2, sc3 = st.columns([5, 2, 5])
             with sc1:
                 st.markdown(f"""<div class="stat-card" style="border-color:#3a1a1a">
@@ -1037,7 +1063,30 @@ with tab1:
                     st.caption(f"**{dim.replace('_',' ').title()}**: {v}/5 — {note}")
             save_review(code_used, single_scores['total'], multi_scores['total'])
         else:
-            st.warning("Judge scoring failed (likely rate limit). Reviews still shown below.")
+            # Not evaluated yet — show button
+            st.info("Click below to evaluate both reviews with LLM-as-Judge. (2 API calls)")
+            eval_btn = st.button("📊 Evaluate with Judge", type="secondary")
+            if eval_btn:
+                client = get_client()
+                if client:
+                    with st.spinner("Evaluating Single Agent review..."):
+                        sj = llm_as_judge(client, code_used, single_out)
+                        time.sleep(3)
+                    with st.spinner("Evaluating Multi-Agent review..."):
+                        mj = llm_as_judge(client, code_used, final_review)
+                        time.sleep(3)
+                    
+                    ss = parse_judge_score(sj)
+                    ms = parse_judge_score(mj)
+                    
+                    if ss and ms:
+                        st.session_state["review_results"]["single_scores"] = ss
+                        st.session_state["review_results"]["multi_scores"] = ms
+                        st.rerun()  # Refresh to show scores
+                    else:
+                        st.error("Judge failed (rate limit or parse error). Wait 30s and try again.")
+                else:
+                    st.error("API key not found.")
 
         tc = st.session_state.get("token_count", {"total":0,"calls":0,"errors":0})
         st.caption(f"⏱ {elapsed}s | 🔢 {tc['calls']} calls | ❌ {tc['errors']} errors | 💰 ~{tc['total']:,} tokens")
@@ -1047,6 +1096,7 @@ with tab1:
         st.markdown("### 📈 Finding Counts")
         single_findings = count_findings(single_out)
         multi_findings  = count_findings(final_review)
+        
         fig = go.Figure()
         cats = ['critical', 'warning', 'style', 'info']
         fig.add_trace(go.Bar(name='Single', x=[c.title() for c in cats],
@@ -1060,30 +1110,50 @@ with tab1:
             paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ccc"), height=350)
         st.plotly_chart(fig, use_container_width=True)
 
-        # ── FULL REVIEWS ──
+        # ── FULL REVIEWS (ALL agents visible) ──
         st.divider()
         st.markdown("### 📝 Full Reviews")
-        o1, o2, o3 = st.tabs(["🏆 Multi-Agent", "👤 Single Agent", "⚖️ Debate"])
-        with o1:
-            st.markdown(final_review)
-        with o2:
-            st.markdown(single_out)
-        with o3:
-            if debate_result:
-                st.markdown(debate_result)
-            else:
-                st.info("Enable Debate Agent to see this.")
 
-        # ── COPY BUTTONS (for paper data collection) ──
-        st.divider()
-        st.markdown("### 📋 Copy for Paper/Evaluation")
-        c1, c2 = st.columns(2)
-        with c1:
+        # FIX: Show all agent outputs, not just final
+        tab_names = ["🏆 Multi-Agent Final"]
+        if debate_result: tab_names.append("⚖️ Debate")
+        if sec_review: tab_names.append("🛡️ Security")
+        if corr_review: tab_names.append("🐛 Correctness")
+        if style_result: tab_names.append("🎨 Style")
+        tab_names.append("👤 Single Agent")
+        tab_names.append("📋 Copy for Paper")
+
+        tabs = st.tabs(tab_names)
+        
+        with tabs[0]:
+            st.markdown(final_review)
+        
+        idx = 1
+        if debate_result:
+            with tabs[idx]: st.markdown(debate_result)
+            idx += 1
+        if sec_review:
+            with tabs[idx]: st.markdown(sec_review)
+            idx += 1
+        if corr_review:
+            with tabs[idx]: st.markdown(corr_review)
+            idx += 1
+        if style_result:
+            with tabs[idx]: st.markdown(style_result)
+            idx += 1
+        
+        with tabs[idx]:  # Single Agent
+            st.markdown(single_out)
+            idx += 1
+        
+        with tabs[idx]:  # Copy for Paper
+            st.caption("Copy this")
             st.text_area("Multi-Agent Review (copy this)", value=final_review,
                          height=150, key="copy_multi")
-        with c2:
             st.text_area("Single Agent Review (copy this)", value=single_out,
                          height=150, key="copy_single")
+            st.text_area("Original Code (copy this too)", value=code_used,
+                         height=150, key="copy_code")
 
     # ── AUTO-FIX ──
     if st.session_state.get("last_review"):
