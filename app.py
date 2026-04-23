@@ -903,6 +903,7 @@ with tab1:
                 # FIX: Reset ALL session state for new run
                 for key in ["review_results", "fixed_code", "last_review", "last_code"]:
                     st.session_state.pop(key, None)
+                    
 
                 st.divider()
                 st.markdown("### Running Pipeline")
@@ -919,7 +920,7 @@ with tab1:
                 if use_security:
                     status.info("🛡️ Step 2/6: Security Reviewer...")
                     sec_review = security_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(2)
+                    time.sleep(5)  
                 progress.progress(30)
 
                 # Step 3: Correctness
@@ -927,7 +928,7 @@ with tab1:
                 if use_correctness:
                     status.info("🐛 Step 3/6: Correctness Reviewer...")
                     corr_review = correctness_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(2)
+                    time.sleep(5)  
                 progress.progress(50)
 
                 # Step 4: Style
@@ -935,7 +936,7 @@ with tab1:
                 if use_style:
                     status.info("🎨 Step 4/6: Style Reviewer...")
                     style_result = style_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(2)
+                    time.sleep(5)  
                 progress.progress(65)
 
                 # Step 5: Debate
@@ -943,10 +944,10 @@ with tab1:
                 if use_debate and sec_review and corr_review:
                     status.info("⚖️ Step 5/6: Debate Agent...")
                     debate_result = debate_agent(client, sec_review, corr_review, code_input) or ""
-                    time.sleep(2)
+                    time.sleep(5)  
                 progress.progress(80)
 
-                # Step 6: Synthesize
+                                # Step 6: Synthesize
                 status.info("📝 Step 6/6: Synthesizing...")
                 if debate_result:
                     combined = debate_result
@@ -957,17 +958,24 @@ with tab1:
 
                 if combined:
                     final_review = synthesizer_agent(client, combined, style_result, tool_findings) or ""
-                    time.sleep(2)
-                else:
-                    final_review = style_result or "No review — enable at least one reviewer."
+                    time.sleep(5)
+                
+                # FIX: If synthesizer failed, combine whatever we have
+                if not final_review:
+                    parts = []
+                    if sec_review: parts.append(f"## Security Review\n{sec_review}")
+                    if corr_review: parts.append(f"## Correctness Review\n{corr_review}")
+                    if style_result: parts.append(f"## Style Review\n{style_result}")
+                    if debate_result: parts.append(f"## Debate Analysis\n{debate_result}")
+                    final_review = "\n\n---\n\n".join(parts) if parts else "All agents failed due to rate limits. Wait 60 seconds and try again."
                 progress.progress(90)
 
-                if use_verification and final_review:
+                if use_verification and final_review and "All agents failed" not in final_review:
                     status.info("✅ Verifying findings...")
                     verified = verifier_agent(client, code_input, final_review)
                     if verified:
                         final_review = verified
-                    time.sleep(2)
+                    time.sleep(5)
                 progress.progress(100)
                 elapsed = round(time.time() - start_time, 1)
                 status.success(f"Pipeline complete! ({elapsed}s)")
@@ -975,7 +983,7 @@ with tab1:
                 # ── SINGLE AGENT BASELINE ──
                 with st.spinner("Running single agent baseline..."):
                     single_out = single_agent_review(client, code_input) or "Rate limited — no output."
-                    time.sleep(2)
+                    time.sleep(5)
 
                 with st.spinner("Evaluating (LLM-as-Judge)..."):
                     single_judge_raw = llm_as_judge(client, code_input, single_out)
@@ -993,8 +1001,8 @@ with tab1:
                     "sec_review": sec_review,
                     "corr_review": corr_review,
                     "style_result": style_result,
-                    "single_scores": None,  # FIX: Judge runs separately
-                    "multi_scores": None,
+                    "single_scores": single_scores,  # FIX: Save actual scores
+                    "multi_scores": multi_scores,     # FIX: Save actual scores
                     "elapsed": elapsed,
                     "code_input": code_input,
                 }
@@ -1276,8 +1284,27 @@ with tab2:
         elif not selected_samples:
             st.error("Select at least one sample or enter code.")
         else:
+            # Cooldown check after too many rate-limit errors
+            tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
+
+            if tc["errors"] > 5:
+                st.warning("⚠️ Too many recent rate-limit errors. Wait 60 seconds before running again.")
+
+                wait_btn = st.button("I've waited 60 seconds — Reset Counter")
+
+                if wait_btn:
+                    st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
+                    st.rerun()
+
+                st.stop()
+
+            # Fresh run reset
             st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
             start_time = time.time()
+
+            # Clear previous ablation results
+            st.session_state.pop("ablation_all_results", None)
+
 
             progress_placeholder = st.empty()
             def progress_cb(msg):
