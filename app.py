@@ -1107,33 +1107,39 @@ with tab2:
 
     st.divider()
 
-    # ── MODE SELECTOR ──
+       # ── MODE SELECTOR ──
     st.markdown("### Choose Mode")
     mode = st.radio("Ablation mode", [
-        "🔬 Single Sample — test one code snippet",
-        "📊 Batch (All 3 Samples) — paper data",
-        "📂 Load Cached Results — from previous run"
-    ], horizontal=True)
+        "single",      # FIX: clean values, no emojis
+        "batch",
+        "cached"
+    ], format_func=lambda x: {
+        "single": "🔬 Single Sample — test one code snippet",
+        "batch":  "📊 Batch (All 3 Samples) — paper data",
+        "cached": "📂 Load Cached Results — from previous run"
+    }[x], horizontal=True)
 
-    if mode.startswith("Single"):
+    if mode == "single":
         ablation_code = st.text_area("Enter code for ablation",
             value=SAMPLE_CODES.get("Vulnerable Web App", ""), height=200, key="ablation_code")
         selected_samples = {"Custom": ablation_code}
 
-    elif mode.startswith("Batch"):
+    elif mode == "batch":
         st.info("Will run ablation on all 3 sample codes sequentially. ~15 min total.")
-        # Let user pick which samples
         selected_samples = {}
         for name, code in SAMPLE_CODES.items():
             if st.checkbox(f"Include: {name}", value=True, key=f"inc_{name}"):
                 selected_samples[name] = code
 
-    else:  # Load cached
+    else:  # cached
         if os.path.exists(ABLATION_CACHE):
-            with open(ABLATION_CACHE, "r") as f:
-                cached = json.load(f)
-            st.success(f"Found cached results for: {', '.join(cached.keys())}")
-            selected_samples = None  # signal to load from cache
+            try:
+                with open(ABLATION_CACHE, "r") as f:
+                    cached = json.load(f)
+                st.success(f"Found cached results for: {', '.join(cached.keys())}")
+            except:
+                st.warning("Cache file corrupted. Run batch ablation again.")
+            selected_samples = None
         else:
             st.warning("No cached results found. Run batch ablation first.")
             selected_samples = {}
@@ -1146,15 +1152,14 @@ with tab2:
         client = get_client()
         if not client:
             st.error("API key not found.")
-        elif mode.startswith("Load"):
-            pass  # handled below
+        elif mode == "cached":
+            pass  # handled in display section below
         elif not selected_samples:
-            st.error("Select at least one sample.")
+            st.error("Select at least one sample or enter code.")
         else:
             st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
             start_time = time.time()
 
-            # Progress tracking
             progress_placeholder = st.empty()
             def progress_cb(msg):
                 progress_placeholder.info(f"🔄 {msg}")
@@ -1166,9 +1171,9 @@ with tab2:
             tc = st.session_state.get("token_count", {"total":0,"calls":0,"errors":0})
             progress_placeholder.success(f"✅ Done! {elapsed}s | {tc['calls']} calls | {tc['errors']} errors")
 
-            # Save to session state for display
             st.session_state["ablation_all_results"] = all_results
-
+            
+            
     # ── DISPLAY RESULTS ──
     # Load from session state or cache
     all_results = st.session_state.get("ablation_all_results")
