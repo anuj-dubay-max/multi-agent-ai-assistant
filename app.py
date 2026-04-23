@@ -855,14 +855,13 @@ with tab1:
             st.success(f"Loaded: {uploaded_file.name}")
 
     if sample_choice != "None":
-        default_code = SAMPLE_CODES[sample_choice]
+        st.session_state["cr_code"] = SAMPLE_CODES[sample_choice]
     elif st.session_state.get("uploaded_code"):
-        default_code = st.session_state["uploaded_code"]
-    else:
-        default_code = ""
+        st.session_state["cr_code"] = st.session_state["uploaded_code"]
+    # Don't clear if user typed something manually and chose "None"
 
     with paste_col:
-        code_input = st.text_area("Paste your code", value=default_code,
+        code_input = st.text_area("Paste your code",
             height=250, placeholder="Paste Python code here...", key="cr_code")
 
     run_btn = st.button("🔍 Run Multi-Agent Review", type="primary", use_container_width=True)
