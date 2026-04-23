@@ -815,6 +815,9 @@ with st.sidebar:
     use_style       = st.checkbox("Style Reviewer", value=True)
     use_debate      = st.checkbox("Debate Agent", value=True,
                                   help="Compares Security vs Correctness findings")
+    use_synthesizer = st.checkbox("Synthesizer Agent", value=True,
+                                  help="Merges and deduplicates all findings",
+                                  disabled=True)  # Always on — can't turn off
     use_verification = st.checkbox("Verifier Agent", value=True,
                                    help="Removes hallucinated findings")
 
