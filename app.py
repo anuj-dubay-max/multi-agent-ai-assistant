@@ -92,11 +92,8 @@ def get_client():
 
 def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=3000):
     """
-    FIX: Much more robust rate limit handling.
-    - 5 retries instead of 3
-    - Exponential backoff with jitter
-    - Always counts attempts (even failures)
-    - Returns None on failure instead of error string (so callers can handle it)
+    FIX: Faster retry logic for Groq free tier.
+    5 retries, but shorter waits: 6s, 12s, 20s, 30s, 45s
     """
     max_retries = 5
     for attempt in range(max_retries):
@@ -111,7 +108,6 @@ def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=30
                 max_tokens=max_tokens,
             )
             content = response.choices[0].message.content
-            # Track token usage
             if hasattr(response, 'usage') and response.usage:
                 st.session_state["token_count"]["total"] += getattr(response.usage, 'total_tokens', 0)
             st.session_state["token_count"]["calls"] += 1
@@ -119,20 +115,19 @@ def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=30
         except Exception as e:
             err_str = str(e)
             st.session_state["token_count"]["errors"] += 1
-            # Rate limit or server overload
             if any(code in err_str for code in ["429", "503", "rate_limit", "Rate limit"]):
-                wait = min((attempt + 1) * 20 + 5, 120)  # 25s, 45s, 65s, 85s, 105s
+                # FIX: shorter waits - 6s, 12s, 20s, 30s, 45s
+                wait = min((attempt + 1) * 6, 45)
                 if attempt < max_retries - 1:
                     time.sleep(wait)
                     continue
                 else:
-                    return None  # FIX: return None, not an error string
+                    return None
             else:
-                # Non-rate-limit error — don't retry
                 st.error(f"API Error: {err_str[:200]}")
                 return None
-
     return None
+
 
 def generate_diff(original, fixed):
     orig_lines = original.splitlines(keepends=True)
@@ -854,11 +849,11 @@ with tab1:
             st.session_state["uploaded_code"] = file_content
             st.success(f"Loaded: {uploaded_file.name}")
 
+    # FIX: Update session state directly so text area updates on sample change
     if sample_choice != "None":
         st.session_state["cr_code"] = SAMPLE_CODES[sample_choice]
     elif st.session_state.get("uploaded_code"):
         st.session_state["cr_code"] = st.session_state["uploaded_code"]
-    # Don't clear if user typed something manually and chose "None"
 
     with paste_col:
         code_input = st.text_area("Paste your code",
@@ -866,6 +861,7 @@ with tab1:
 
     run_btn = st.button("🔍 Run Multi-Agent Review", type="primary", use_container_width=True)
 
+    # ── RUN PIPELINE ─────────────────────────────────────────
     if run_btn:
         if not code_input.strip():
             st.error("Paste some code first.")
@@ -877,34 +873,26 @@ with tab1:
                 st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
                 start_time = time.time()
 
+                # FIX: Reset ALL session state for new run
+                for key in ["review_results", "fixed_code", "last_review", "last_code"]:
+                    st.session_state.pop(key, None)
+
                 st.divider()
                 st.markdown("### Running Pipeline")
                 progress = st.progress(0)
                 status   = st.empty()
 
                 # Step 1: Tool Agent
-                status.info("🔧 Step 1/6: Tool Agent...")
+                status.info("🔧 Step 1/6: Tool Agent (instant)...")
                 tool_findings = tool_agent(code_input)
                 progress.progress(15)
-
-                if tool_findings:
-                    st.markdown(f"**Tool Agent found {len(tool_findings)} issues**")
-                    for f in tool_findings:
-                        sev_class = f"severity-{f['severity']}"
-                        st.markdown(f"""<div class="finding-card {sev_class}">
-                            <span class="sev-badge sev-{f['severity']}">{f['severity']}</span>
-                            <strong>{f['location']}</strong> — {f['message']}
-                            <br><small style="color:#666">Source: {f['agent']}</small></div>""",
-                            unsafe_allow_html=True)
-                else:
-                    st.info("Tool Agent: No issues detected.")
 
                 # Step 2: Security
                 sec_review = ""
                 if use_security:
                     status.info("🛡️ Step 2/6: Security Reviewer...")
                     sec_review = security_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(3)
+                    time.sleep(2)
                 progress.progress(30)
 
                 # Step 3: Correctness
@@ -912,7 +900,7 @@ with tab1:
                 if use_correctness:
                     status.info("🐛 Step 3/6: Correctness Reviewer...")
                     corr_review = correctness_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(3)
+                    time.sleep(2)
                 progress.progress(50)
 
                 # Step 4: Style
@@ -920,7 +908,7 @@ with tab1:
                 if use_style:
                     status.info("🎨 Step 4/6: Style Reviewer...")
                     style_result = style_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(3)
+                    time.sleep(2)
                 progress.progress(65)
 
                 # Step 5: Debate
@@ -928,7 +916,7 @@ with tab1:
                 if use_debate and sec_review and corr_review:
                     status.info("⚖️ Step 5/6: Debate Agent...")
                     debate_result = debate_agent(client, sec_review, corr_review, code_input) or ""
-                    time.sleep(3)
+                    time.sleep(2)
                 progress.progress(80)
 
                 # Step 6: Synthesize
@@ -942,7 +930,7 @@ with tab1:
 
                 if combined:
                     final_review = synthesizer_agent(client, combined, style_result, tool_findings) or ""
-                    time.sleep(3)
+                    time.sleep(2)
                 else:
                     final_review = style_result or "No review — enable at least one reviewer."
                 progress.progress(90)
@@ -952,91 +940,150 @@ with tab1:
                     verified = verifier_agent(client, code_input, final_review)
                     if verified:
                         final_review = verified
-                    time.sleep(3)
+                    time.sleep(2)
                 progress.progress(100)
                 elapsed = round(time.time() - start_time, 1)
                 status.success(f"Pipeline complete! ({elapsed}s)")
 
-                st.session_state["last_review"] = final_review
-                st.session_state["last_code"] = code_input
-                st.session_state["fixed_code"] = ""
-
                 # ── SINGLE AGENT BASELINE ──
                 with st.spinner("Running single agent baseline..."):
                     single_out = single_agent_review(client, code_input) or "Rate limited — no output."
+                    time.sleep(2)
 
                 with st.spinner("Evaluating (LLM-as-Judge)..."):
                     single_judge_raw = llm_as_judge(client, code_input, single_out)
+                    time.sleep(2)
                     multi_judge_raw  = llm_as_judge(client, code_input, final_review)
                     single_scores    = parse_judge_score(single_judge_raw)
                     multi_scores     = parse_judge_score(multi_judge_raw)
 
-                st.divider()
-                st.markdown("### 📊 Score Comparison")
+                # ── FIX: SAVE EVERYTHING TO SESSION STATE ──
+                st.session_state["review_results"] = {
+                    "final_review": final_review,
+                    "single_out": single_out,
+                    "debate_result": debate_result,
+                    "tool_findings": tool_findings,
+                    "sec_review": sec_review,
+                    "corr_review": corr_review,
+                    "style_result": style_result,
+                    "single_scores": single_scores,
+                    "multi_scores": multi_scores,
+                    "elapsed": elapsed,
+                    "code_input": code_input,
+                }
+                st.session_state["last_review"] = final_review
+                st.session_state["last_code"] = code_input
+                st.session_state["fixed_code"] = ""
 
-                if single_scores and multi_scores:
-                    sc1, sc2, sc3 = st.columns([5, 2, 5])
-                    with sc1:
-                        st.markdown(f"""<div class="stat-card" style="border-color:#3a1a1a">
-                            <div class="stat-label">Single Agent</div>
-                            <div class="stat-num" style="color:#e05252">{single_scores['total']}</div>
-                            <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
-                        dims = ["completeness", "accuracy", "actionability", "prioritization", "low_hallucination"]
-                        for dim in dims:
-                            v = single_scores.get(dim, {}).get("score", 0)
-                            note = single_scores.get(dim, {}).get("note", "")
-                            st.caption(f"**{dim.replace('_',' ').title()}**: {v}/5 — {note}")
-                    with sc2:
-                        diff = multi_scores['total'] - single_scores['total']
-                        color = "#52c478" if diff >= 0 else "#e05252"
-                        sign = "+" if diff >= 0 else ""
-                        st.markdown(f"""<div class="stat-card" style="border-color:#2a2a2a">
-                            <div class="stat-label">Delta</div>
-                            <div class="stat-num" style="color:{color}">{sign}{diff}</div></div>""",
-                            unsafe_allow_html=True)
-                    with sc3:
-                        st.markdown(f"""<div class="stat-card" style="border-color:#1a3a1a">
-                            <div class="stat-label">Multi-Agent</div>
-                            <div class="stat-num" style="color:#52c478">{multi_scores['total']}</div>
-                            <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
-                        for dim in dims:
-                            v = multi_scores.get(dim, {}).get("score", 0)
-                            note = multi_scores.get(dim, {}).get("note", "")
-                            st.caption(f"**{dim.replace('_',' ').title()}**: {v}/5 — {note}")
-                    save_review(code_input, single_scores['total'], multi_scores['total'])
-                else:
-                    st.warning("Judge scoring failed (likely rate limit). Reviews are still shown below.")
+    # ── FIX: DISPLAY RESULTS FROM SESSION STATE ──
+    # This block runs EVERY time, not just when button is clicked
+    # So results survive tab switching
+    results = st.session_state.get("review_results")
 
-                tc = st.session_state.get("token_count", {"total":0,"calls":0,"errors":0})
-                st.caption(f"⏱ {elapsed}s | 🔢 {tc['calls']} calls | ❌ {tc['errors']} errors | 💰 ~{tc['total']:,} tokens")
+    if results:
+        final_review  = results["final_review"]
+        single_out    = results["single_out"]
+        debate_result = results["debate_result"]
+        tool_findings = results["tool_findings"]
+        single_scores = results["single_scores"]
+        multi_scores  = results["multi_scores"]
+        elapsed       = results["elapsed"]
+        code_used     = results["code_input"]
 
-                # Finding counts chart
-                st.divider()
-                st.markdown("### 📈 Finding Counts")
-                single_findings = count_findings(single_out)
-                multi_findings  = count_findings(final_review)
-                fig = go.Figure()
-                cats = ['critical', 'warning', 'style', 'info']
-                fig.add_trace(go.Bar(name='Single', x=[c.title() for c in cats],
-                    y=[single_findings.get(c,0) for c in cats],
-                    marker_color=['#ff4444','#ffaa00','#4488ff','#44bb88'], opacity=0.7))
-                fig.add_trace(go.Bar(name='Multi-Agent', x=[c.title() for c in cats],
-                    y=[multi_findings.get(c,0) for c in cats],
-                    marker_color=['#ff6666','#ffcc44','#6699ff','#66ddaa']))
-                fig.update_layout(barmode='group', title="Findings by Severity",
-                    yaxis_title="Count", plot_bgcolor="rgba(0,0,0,0)",
-                    paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ccc"), height=350)
-                st.plotly_chart(fig, use_container_width=True)
+        st.divider()
 
-                # Full reviews
-                st.divider()
-                st.markdown("### 📝 Full Reviews")
-                o1, o2, o3 = st.tabs(["🏆 Multi-Agent", "👤 Single Agent", "⚖️ Debate"])
-                with o1: st.markdown(final_review)
-                with o2: st.markdown(single_out)
-                with o3:
-                    if debate_result: st.markdown(debate_result)
-                    else: st.info("Enable Debate Agent to see this.")
+        # ── TOOL FINDINGS ──
+        if tool_findings:
+            st.markdown(f"**Tool Agent found {len(tool_findings)} issues**")
+            for f in tool_findings:
+                sev_class = f"severity-{f['severity']}"
+                st.markdown(f"""<div class="finding-card {sev_class}">
+                    <span class="sev-badge sev-{f['severity']}">{f['severity']}</span>
+                    <strong>{f['location']}</strong> — {f['message']}
+                    <br><small style="color:#666">Source: {f['agent']}</small></div>""",
+                    unsafe_allow_html=True)
+
+        # ── SCORE COMPARISON ──
+        st.markdown("### 📊 Score Comparison")
+
+        if single_scores and multi_scores:
+            sc1, sc2, sc3 = st.columns([5, 2, 5])
+            with sc1:
+                st.markdown(f"""<div class="stat-card" style="border-color:#3a1a1a">
+                    <div class="stat-label">Single Agent</div>
+                    <div class="stat-num" style="color:#e05252">{single_scores['total']}</div>
+                    <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
+                dims = ["completeness", "accuracy", "actionability", "prioritization", "low_hallucination"]
+                for dim in dims:
+                    v = single_scores.get(dim, {}).get("score", 0)
+                    note = single_scores.get(dim, {}).get("note", "")
+                    st.caption(f"**{dim.replace('_',' ').title()}**: {v}/5 — {note}")
+            with sc2:
+                diff = multi_scores['total'] - single_scores['total']
+                color = "#52c478" if diff >= 0 else "#e05252"
+                sign = "+" if diff >= 0 else ""
+                st.markdown(f"""<div class="stat-card" style="border-color:#2a2a2a">
+                    <div class="stat-label">Delta</div>
+                    <div class="stat-num" style="color:{color}">{sign}{diff}</div></div>""",
+                    unsafe_allow_html=True)
+            with sc3:
+                st.markdown(f"""<div class="stat-card" style="border-color:#1a3a1a">
+                    <div class="stat-label">Multi-Agent</div>
+                    <div class="stat-num" style="color:#52c478">{multi_scores['total']}</div>
+                    <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
+                for dim in dims:
+                    v = multi_scores.get(dim, {}).get("score", 0)
+                    note = multi_scores.get(dim, {}).get("note", "")
+                    st.caption(f"**{dim.replace('_',' ').title()}**: {v}/5 — {note}")
+            save_review(code_used, single_scores['total'], multi_scores['total'])
+        else:
+            st.warning("Judge scoring failed (likely rate limit). Reviews still shown below.")
+
+        tc = st.session_state.get("token_count", {"total":0,"calls":0,"errors":0})
+        st.caption(f"⏱ {elapsed}s | 🔢 {tc['calls']} calls | ❌ {tc['errors']} errors | 💰 ~{tc['total']:,} tokens")
+
+        # ── FINDING COUNTS ──
+        st.divider()
+        st.markdown("### 📈 Finding Counts")
+        single_findings = count_findings(single_out)
+        multi_findings  = count_findings(final_review)
+        fig = go.Figure()
+        cats = ['critical', 'warning', 'style', 'info']
+        fig.add_trace(go.Bar(name='Single', x=[c.title() for c in cats],
+            y=[single_findings.get(c,0) for c in cats],
+            marker_color=['#ff4444','#ffaa00','#4488ff','#44bb88'], opacity=0.7))
+        fig.add_trace(go.Bar(name='Multi-Agent', x=[c.title() for c in cats],
+            y=[multi_findings.get(c,0) for c in cats],
+            marker_color=['#ff6666','#ffcc44','#6699ff','#66ddaa']))
+        fig.update_layout(barmode='group', title="Findings by Severity",
+            yaxis_title="Count", plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ccc"), height=350)
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ── FULL REVIEWS ──
+        st.divider()
+        st.markdown("### 📝 Full Reviews")
+        o1, o2, o3 = st.tabs(["🏆 Multi-Agent", "👤 Single Agent", "⚖️ Debate"])
+        with o1:
+            st.markdown(final_review)
+        with o2:
+            st.markdown(single_out)
+        with o3:
+            if debate_result:
+                st.markdown(debate_result)
+            else:
+                st.info("Enable Debate Agent to see this.")
+
+        # ── COPY BUTTONS (for paper data collection) ──
+        st.divider()
+        st.markdown("### 📋 Copy for Paper/Evaluation")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.text_area("Multi-Agent Review (copy this)", value=final_review,
+                         height=150, key="copy_multi")
+        with c2:
+            st.text_area("Single Agent Review (copy this)", value=single_out,
+                         height=150, key="copy_single")
 
     # ── AUTO-FIX ──
     if st.session_state.get("last_review"):
@@ -1082,7 +1129,7 @@ with tab1:
                         f"You are a code review assistant.\n\nCode:\n```\n{st.session_state.get('last_code','')}\n```\n\nReview:\n{st.session_state.get('last_review','')}",
                         followup)
                     st.markdown(resp or "Rate limited — try again.")
-
+                    
 # ── TAB 2: ABLATION STUDY ───────────────────────────────────
 
 with tab2:
