@@ -955,6 +955,8 @@ with tab1:
                     combined = f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}"
                 else:
                     combined = ""
+                    
+                final_review = ""
 
                 if combined:
                     final_review = synthesizer_agent(client, combined, style_result, tool_findings) or ""
