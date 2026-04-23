@@ -62,7 +62,7 @@ code, pre { font-family: 'JetBrains Mono', monospace !important; }
 # CONFIG & HELPERS
 # ══════════════════════════════════════════════════════════════
 
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "llama-3.1-8b-instant"
 MEMORY_FILE = "review_memory.json"
 ABLATION_CACHE = "ablation_results.json"  # FIX: persistent cache file
 
@@ -90,7 +90,7 @@ def get_client():
         return None
     return Groq(api_key=api_key)
 
-def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=3000):
+def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=1200):
     """
     FIX: Faster retry logic for Groq free tier.
     5 retries, but shorter waits: 6s, 12s, 20s, 30s, 45s
@@ -893,6 +893,7 @@ with tab1:
         if not code_input.strip():
             st.error("Paste some code first.")
         else:
+            code_input = code_input[:6000]  
             client = get_client()
             if not client:
                 st.error("API key not found.")
@@ -920,7 +921,7 @@ with tab1:
                 if use_security:
                     status.info("🛡️ Step 2/6: Security Reviewer...")
                     sec_review = security_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(5)  
+                    time.sleep(2)  
                 progress.progress(30)
 
                 # Step 3: Correctness
@@ -928,7 +929,7 @@ with tab1:
                 if use_correctness:
                     status.info("🐛 Step 3/6: Correctness Reviewer...")
                     corr_review = correctness_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(5)  
+                    time.sleep(2)  
                 progress.progress(50)
 
                 # Step 4: Style
@@ -936,7 +937,7 @@ with tab1:
                 if use_style:
                     status.info("🎨 Step 4/6: Style Reviewer...")
                     style_result = style_reviewer(client, code_input, tool_findings) or ""
-                    time.sleep(5)  
+                    time.sleep(2)  
                 progress.progress(65)
 
                 # Step 5: Debate
@@ -944,7 +945,7 @@ with tab1:
                 if use_debate and sec_review and corr_review:
                     status.info("⚖️ Step 5/6: Debate Agent...")
                     debate_result = debate_agent(client, sec_review, corr_review, code_input) or ""
-                    time.sleep(5)  
+                    time.sleep(2)  
                 progress.progress(80)
 
                                 # Step 6: Synthesize
@@ -960,7 +961,7 @@ with tab1:
 
                 if combined:
                     final_review = synthesizer_agent(client, combined, style_result, tool_findings) or ""
-                    time.sleep(5)
+                    time.sleep(2)
                 
                 # FIX: If synthesizer failed, combine whatever we have
                 if not final_review:
@@ -977,7 +978,7 @@ with tab1:
                     verified = verifier_agent(client, code_input, final_review)
                     if verified:
                         final_review = verified
-                    time.sleep(5)
+                    time.sleep(2)
                 progress.progress(100)
                 elapsed = round(time.time() - start_time, 1)
                 status.success(f"Pipeline complete! ({elapsed}s)")
@@ -985,7 +986,7 @@ with tab1:
                 # ── SINGLE AGENT BASELINE ──
                 with st.spinner("Running single agent baseline..."):
                     single_out = single_agent_review(client, code_input) or "Rate limited — no output."
-                    time.sleep(5)
+                    time.sleep(2)
 
                 with st.spinner("Evaluating (LLM-as-Judge)..."):
                     single_judge_raw = llm_as_judge(client, code_input, single_out)
@@ -994,7 +995,7 @@ with tab1:
                     single_scores    = parse_judge_score(single_judge_raw)
                     multi_scores     = parse_judge_score(multi_judge_raw)
 
-                                # ── FIX: SAVE EVERYTHING TO SESSION STATE ──
+                 # ── FIX: SAVE EVERYTHING TO SESSION STATE ──
                 st.session_state["review_results"] = {
                     "final_review": final_review,
                     "single_out": single_out,
