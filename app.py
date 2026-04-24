@@ -399,71 +399,50 @@ def llm_as_judge(client, code, review_output):
     
     
 def parse_judge_score(raw):
-    """
-    FIX: Much more robust parsing. Tries 4 strategies before giving up.
-    """
     if raw is None:
         return None
 
-    # Strategy 1: Direct JSON parse
     try:
         clean = raw.strip()
+
+        # remove markdown fences
         if clean.startswith("```"):
-            clean = re.sub(r'```(?:json)?', '', clean).strip()
+            clean = clean.replace("```json", "").replace("```", "").strip()
+
+        # isolate json object
+        start = clean.find("{")
+        end = clean.rfind("}") + 1
+
+        if start == -1 or end == 0:
+            return None
+
+        clean = clean[start:end]
+
         data = json.loads(clean)
-        if "total" in data:
-            return data
-    except (json.JSONDecodeError, ValueError):
-        pass
 
-    # Strategy 2: Extract JSON object from anywhere in the text
-    try:
-        json_match = re.search(r'\{[^{}]*"total"[^{}]*\}', raw, re.DOTALL)
-        if json_match:
-            data = json.loads(json_match.group())
-            if "total" in data:
-                return data
-    except (json.JSONDecodeError, ValueError):
-        pass
+        dims = [
+            "completeness",
+            "accuracy",
+            "actionability",
+            "prioritization",
+            "low_hallucination"
+        ]
 
-    # Strategy 3: Find all "score": N and reconstruct
-    try:
-        scores = re.findall(r'"score"\s*:\s*(\d)', raw)
-        if len(scores) >= 5:
-            total = sum(int(s) for s in scores[:5])
-            return {
-                "completeness":      {"score": int(scores[0]), "note": ""},
-                "accuracy":          {"score": int(scores[1]), "note": ""},
-                "actionability":     {"score": int(scores[2]), "note": ""},
-                "prioritization":    {"score": int(scores[3]), "note": ""},
-                "low_hallucination": {"score": int(scores[4]), "note": ""},
-                "total": total, "max": 25
-            }
-    except (ValueError, IndexError):
-        pass
+        total = 0
 
-    # Strategy 4: Look for any numbers 1-5 after dimension names
-    try:
-        dims = ["completeness", "accuracy", "actionability", "prioritization", "hallucination"]
-        found = []
-        for dim in dims:
-            match = re.search(rf'{dim}[^0-9]*?(\d)', raw, re.IGNORECASE)
-            if match:
-                found.append(min(int(match.group(1)), 5))
-        if len(found) >= 5:
-            total = sum(found[:5])
-            return {
-                "completeness":      {"score": found[0], "note": ""},
-                "accuracy":          {"score": found[1], "note": ""},
-                "actionability":     {"score": found[2], "note": ""},
-                "prioritization":    {"score": found[3], "note": ""},
-                "low_hallucination": {"score": found[4], "note": ""},
-                "total": total, "max": 25
-            }
-    except (ValueError, IndexError):
-        pass
+        for d in dims:
+            score = int(data[d]["score"])
+            score = max(1, min(score, 5))
+            data[d]["score"] = score
+            total += score
 
-    return None
+        data["total"] = total
+        data["max"] = 25
+
+        return data
+
+    except:
+        return None
 
 def count_findings(review_text):
     """Count findings in both multi-agent format (CRITICAL) and 
@@ -1620,7 +1599,7 @@ with tab3:
     | Same model for judge & agents | Different model for judging |
     | Small sample size | Test on real open-source repos |
     | Prompt sensitivity | Multiple prompt variants |
-    | Non-deterministic outputs | Fixed temperature (0.3) |
+    | Non-deterministic outputs | Fixed temperature (0 for judge, low temp for agents) |
     """)
 
 # ── TAB 4: HOW IT WORKS ─────────────────────────────────────
