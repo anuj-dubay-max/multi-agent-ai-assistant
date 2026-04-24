@@ -364,33 +364,31 @@ def llm_as_judge(client, code, review_output):
     truncated_review = review_output[:2000] if len(review_output) > 2000 else review_output
     
     return call_llm(client,
-       """You are an expert code review evaluator.
+       """You are a strict code review evaluator.
 
-        Rate the review on:
-        1. completeness
-        2. accuracy
-        3. actionability
-        4. prioritization
-        5. low_hallucination
+Score each dimension from 1 to 5.
 
-        STRICT RULES:
-        - Missing critical security issues must heavily reduce score.
-        - Missing SQL injection, command injection, unsafe deserialization,
-        hardcoded secrets, mutable defaults = major penalty.
-        - Penalize false claims.
-        - Penalize vague fixes.
-        - Do NOT reward long answers.
+Rules:
+- If critical security issues are missed, completeness max = 2
+- If false claims exist, accuracy max = 2
+- If fixes are vague, actionability max = 3
+- If critical issues are not ranked first, prioritization max = 3
+- If invented findings exist, low_hallucination max = 2
 
-        Return ONLY valid JSON:
-        {
-        "completeness":{"score":X,"note":"..."},
-        "accuracy":{"score":X,"note":"..."},
-        "actionability":{"score":X,"note":"..."},
-        "prioritization":{"score":X,"note":"..."},
-        "low_hallucination":{"score":X,"note":"..."},
-        "total":X,
-        "max":25
-        }
+Be conservative.
+Do not give 5 unless nearly flawless.
+Do not reward long answers.
+
+Return ONLY valid JSON:
+{
+"completeness":{"score":X,"note":"..."},
+"accuracy":{"score":X,"note":"..."},
+"actionability":{"score":X,"note":"..."},
+"prioritization":{"score":X,"note":"..."},
+"low_hallucination":{"score":X,"note":"..."},
+"total":X,
+"max":25
+}
         """,
         
         f"Code:\n```\n{code}\n```\nReview:\n{truncated_review}\n\nRate this review. JSON only.",
