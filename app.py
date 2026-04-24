@@ -861,7 +861,13 @@ with st.sidebar:
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
     st.caption(f"API calls: {tc['calls']} | Errors: {tc['errors']} | Tokens: {tc['total']:,}")
 
+    
     st.divider()
+    if st.button("🗑️ Clear Current Results"):
+        for key in ["review_results", "fixed_code", "last_review", "last_code"]:
+            st.session_state.pop(key, None)
+        st.rerun()
+        
     st.markdown("### 📋 History")
     memory = load_memory()
     if memory:
@@ -877,6 +883,13 @@ with st.sidebar:
     st.caption("Xi et al. 2023 — arXiv:2309.07864")
     st.caption("Liu et al. 2024 — arXiv:2308.03688")
     st.caption("Zheng et al. 2023 — LLM-as-a-Judge")
+    
+    st.divider()
+    if st.button("🗑️ Clear Results"):
+        for key in list(st.session_state.keys()):
+            if key in ["review_results", "fixed_code", "last_review", "last_code"]:
+                del st.session_state[key]
+        st.rerun()
 
 # ══════════════════════════════════════════════════════════════
 # MAIN TABS
@@ -907,12 +920,15 @@ with tab1:
         uploaded_file = st.file_uploader("Upload .py file", type=["py", "txt"])
         if uploaded_file:
             file_content = uploaded_file.read().decode("utf-8")
-            st.session_state["uploaded_code"] = file_content
+            for key in ["review_results", "fixed_code", "last_review", "last_code"]:
+                st.session_state.pop(key, None)
             st.success(f"Loaded: {uploaded_file.name}")
 
     # FIX: Update session state directly so text area updates on sample change
     if sample_choice != "None":
         st.session_state["cr_code"] = SAMPLE_CODES[sample_choice]
+        for key in ["review_results", "fixed_code", "last_review", "last_code"]:
+            st.session_state.pop(key, None)
     elif st.session_state.get("uploaded_code"):
         st.session_state["cr_code"] = st.session_state["uploaded_code"]
 
