@@ -900,7 +900,7 @@ with tab1:
         sample_choice = st.selectbox("Load sample code", ["None"] + list(SAMPLE_CODES.keys()),
                                      key="sample_select")
     with col_spacer:
-        st.caption("🐍 Python recommended — full AST + Security analysis")
+        st.caption("🐍 Python gets full analysis (AST + security scanner). Other languages get pattern-based checks.")
 
     upload_col, paste_col = st.columns([1, 3])
     with upload_col:
