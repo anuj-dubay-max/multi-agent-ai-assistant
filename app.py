@@ -237,7 +237,22 @@ def run_security_patterns(code):
 # ══════════════════════════════════════════════════════════════
 
 def tool_agent(code):
-    return run_ast_analysis(code) + run_security_patterns(code)
+    """Auto-detect: try AST first, fall back to regex-only if not Python."""
+    findings = []
+    
+    # Try Python AST parsing — if it fails, skip it
+    ast_findings = run_ast_analysis(code)
+    if ast_findings and any(f['type'] == 'syntax' for f in ast_findings):
+        # Syntax error = probably not valid Python, skip AST results
+        pass
+    else:
+        findings += ast_findings
+    
+    # Regex patterns work on any language
+    findings += run_security_patterns(code)
+    
+    return findings
+
 
 def security_reviewer(client, code, tool_findings):
     tool_summary = "\n".join(
@@ -880,13 +895,12 @@ with tab1:
     st.markdown('<p class="hero-title">Multi-Agent Code Review</p>', unsafe_allow_html=True)
     st.markdown('<p class="hero-sub">Specialized agents with tool use → debate → verification → auto-fix</p>', unsafe_allow_html=True)
 
-    col_sample, col_lang = st.columns([3, 1])
+    col_sample, col_spacer = st.columns([3, 1])
     with col_sample:
         sample_choice = st.selectbox("Load sample code", ["None"] + list(SAMPLE_CODES.keys()),
                                      key="sample_select")
-    with col_lang:
-        language = st.selectbox("Language", ["Python", "JavaScript", "Java", "Other"],
-                                key="lang_select")
+    with col_spacer:
+        st.caption("🐍 Python recommended — full AST + Security analysis")
 
     upload_col, paste_col = st.columns([1, 3])
     with upload_col:
