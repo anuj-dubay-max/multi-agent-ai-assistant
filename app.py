@@ -861,13 +861,13 @@ with st.sidebar:
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
     st.caption(f"API calls: {tc['calls']} | Errors: {tc['errors']} | Tokens: {tc['total']:,}")
 
-    
     st.divider()
-    if st.button("🗑️ Clear Current Results"):
+    if st.button("🗑️ Clear Results", type="secondary"):
         for key in ["review_results", "fixed_code", "last_review", "last_code"]:
             st.session_state.pop(key, None)
         st.rerun()
-        
+
+    st.divider()
     st.markdown("### 📋 History")
     memory = load_memory()
     if memory:
@@ -920,15 +920,12 @@ with tab1:
         uploaded_file = st.file_uploader("Upload .py file", type=["py", "txt"])
         if uploaded_file:
             file_content = uploaded_file.read().decode("utf-8")
-            for key in ["review_results", "fixed_code", "last_review", "last_code"]:
-                st.session_state.pop(key, None)
+            st.session_state["uploaded_code"] = file_content
             st.success(f"Loaded: {uploaded_file.name}")
 
-    # FIX: Update session state directly so text area updates on sample change
+    # FIX: Only update the code text area, do NOT clear results
     if sample_choice != "None":
         st.session_state["cr_code"] = SAMPLE_CODES[sample_choice]
-        for key in ["review_results", "fixed_code", "last_review", "last_code"]:
-            st.session_state.pop(key, None)
     elif st.session_state.get("uploaded_code"):
         st.session_state["cr_code"] = st.session_state["uploaded_code"]
 
@@ -1126,6 +1123,7 @@ with tab1:
                     note = multi_scores.get(dim, {}).get("note", "")
                     st.caption(f"**{dim.replace('_',' ').title()}**: {v}/5 — {note}")
             save_review(code_used, single_scores['total'], multi_scores['total'])
+            
         else:
             # Not evaluated yet — show button
             st.info("Click below to evaluate both reviews with LLM-as-Judge. (2 API calls)")
@@ -1144,14 +1142,43 @@ with tab1:
                     ms = parse_judge_score(mj)
                     
                     if ss and ms:
-                        st.session_state["review_results"]["single_scores"] = ss
-                        st.session_state["review_results"]["multi_scores"] = ms
-                        st.rerun()  # Refresh to show scores
+                        # FIX: Properly update nested dict in session state
+                        updated_results = st.session_state["review_results"].copy()
+                        updated_results["single_scores"] = ss
+                        updated_results["multi_scores"] = ms
+                        st.session_state["review_results"] = updated_results
+                        
+                        # FIX: Show results immediately without rerun
+                        st.success(f"Single: {ss['total']}/25 | Multi: {ms['total']}/25 | Delta: {'+' if ms['total']>=ss['total'] else ''}{ms['total']-ss['total']}")
+                        
+                        # Show score comparison inline
+                        sc1, sc2, sc3 = st.columns([5, 2, 5])
+                        with sc1:
+                            st.markdown(f"""<div class="stat-card" style="border-color:#3a1a1a">
+                                <div class="stat-label">Single Agent</div>
+                                <div class="stat-num" style="color:#e05252">{ss['total']}</div>
+                                <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
+                        with sc2:
+                            diff = ms['total'] - ss['total']
+                            color = "#52c478" if diff >= 0 else "#e05252"
+                            sign = "+" if diff >= 0 else ""
+                            st.markdown(f"""<div class="stat-card" style="border-color:#2a2a2a">
+                                <div class="stat-label">Delta</div>
+                                <div class="stat-num" style="color:{color}">{sign}{diff}</div></div>""",
+                                unsafe_allow_html=True)
+                        with sc3:
+                            st.markdown(f"""<div class="stat-card" style="border-color:#1a3a1a">
+                                <div class="stat-label">Multi-Agent</div>
+                                <div class="stat-num" style="color:#52c478">{ms['total']}</div>
+                                <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
+                        
+                        save_review(code_used, ss['total'], ms['total'])
+                        st.caption("Refresh page to see full score breakdown.")
                     else:
                         st.error("Judge failed (rate limit or parse error). Wait 30s and try again.")
                 else:
                     st.error("API key not found.")
-
+                    
         tc = st.session_state.get("token_count", {"total":0,"calls":0,"errors":0})
         st.caption(f"⏱ {elapsed}s | 🔢 {tc['calls']} calls | ❌ {tc['errors']} errors | 💰 ~{tc['total']:,} tokens")
 
