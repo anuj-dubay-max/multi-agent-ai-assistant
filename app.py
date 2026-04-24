@@ -336,13 +336,12 @@ Remove FALSE_POSITIVE findings. Add note: "X/Y findings verified (Z removed as f
 
 def single_agent_review(client, code):
     return call_llm(client,
-    """You are a general AI assistant reviewing code.
-
-    Find bugs, security issues, and style issues.
-    Give brief findings with fixes.
-    Do not use specialist depth.
-    """,
-    f"Review this code:\n```\n{code}\n```")
+        """You are an expert code reviewer. Review the following Python code thoroughly.
+Find all bugs, security vulnerabilities, and style issues.
+For each finding provide: line number, severity, description, and specific fix with code.
+Be thorough and specific.""",
+        f"Review this code:\n```\n{code}\n```")
+    
 
 def fix_agent(client, code, final_review):
     return call_llm(client,
