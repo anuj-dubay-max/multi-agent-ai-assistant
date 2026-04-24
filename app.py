@@ -477,8 +477,10 @@ def count_findings(review_text):
         r'(?i)(mutable default|assert.*production|unsafe|'
         r'security risk|potential.*(bug|issue)|vulnerable)', review_text))
     style_nat = len(re.findall(
-        r'(?i)(best practice|type hint|docstring|magic string|'
-        r'naming convention|code organization|readability)', review_text))
+        r'(?i)(best practice|type hint|docstring|magic string|naming|readability|maintainability|refactor|clean code|modular|duplicate code|code quality|style)',
+        review_text
+    ))
+
     info_nat = len(re.findall(
         r'(?i)(recommendation|consider|suggestion|additional|'
         r'error handling|input validation)', review_text))
@@ -1137,10 +1139,10 @@ with tab1:
                 if client:
                     with st.spinner("Evaluating Single Agent review..."):
                         sj = llm_as_judge(client, code_used, single_out)
-                        time.sleep(3)
+                        time.sleep(10)
                     with st.spinner("Evaluating Multi-Agent review..."):
                         mj = llm_as_judge(client, code_used, final_review)
-                        time.sleep(3)
+                        
                     
                     ss = parse_judge_score(sj)
                     ms = parse_judge_score(mj)
