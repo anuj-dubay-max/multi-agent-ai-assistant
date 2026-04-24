@@ -350,7 +350,7 @@ def llm_as_judge(client, code, review_output):
         """Rate this code review 1-5 on: completeness, accuracy, actionability, prioritization, low_hallucination.
 Return ONLY JSON: {"completeness":{"score":X,"note":"..."},"accuracy":{"score":X,"note":"..."},"actionability":{"score":X,"note":"..."},"prioritization":{"score":X,"note":"..."},"low_hallucination":{"score":X,"note":"..."},"total":X,"max":25}""",
         f"Code:\n```\n{code}\n```\nReview:\n{truncated_review}\n\nRate this review. JSON only.",
-        temperature=0.2,
+        temperature=0,
         max_tokens=500)  
     
     
