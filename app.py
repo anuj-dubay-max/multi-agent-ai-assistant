@@ -863,8 +863,16 @@ with st.sidebar:
 
     st.divider()
     if st.button("🗑️ Clear Results", type="secondary"):
-        for key in ["review_results", "fixed_code", "last_review", "last_code"]:
+        for key in [
+            "review_results",
+            "fixed_code",
+            "last_review",
+            "last_code",
+            "uploaded_code",
+            "cr_code"
+        ]:
             st.session_state.pop(key, None)
+
         st.rerun()
 
     st.divider()
@@ -884,12 +892,7 @@ with st.sidebar:
     st.caption("Liu et al. 2024 — arXiv:2308.03688")
     st.caption("Zheng et al. 2023 — LLM-as-a-Judge")
     
-    st.divider()
-    if st.button("🗑️ Clear Results"):
-        for key in list(st.session_state.keys()):
-            if key in ["review_results", "fixed_code", "last_review", "last_code"]:
-                del st.session_state[key]
-        st.rerun()
+    
 
 # ══════════════════════════════════════════════════════════════
 # MAIN TABS
@@ -924,8 +927,9 @@ with tab1:
             st.success(f"Loaded: {uploaded_file.name}")
 
     # FIX: Only update the code text area, do NOT clear results
-    if sample_choice != "None":
+    if sample_choice != "None" and st.session_state.get("loaded_sample") != sample_choice:
         st.session_state["cr_code"] = SAMPLE_CODES[sample_choice]
+        st.session_state["loaded_sample"] = sample_choice
     elif st.session_state.get("uploaded_code"):
         st.session_state["cr_code"] = st.session_state["uploaded_code"]
 
