@@ -90,7 +90,7 @@ def get_client():
         return None
     return Groq(api_key=api_key)
 
-def call_llm(client, system_prompt, user_message, temperature=0.3, max_tokens=1200):
+def call_llm(client, system_prompt, user_message, temperature=0.2, max_tokens=1200):
     """
     FIX: Faster retry logic for Groq free tier.
     5 retries, but shorter waits: 6s, 12s, 20s, 30s, 45s
@@ -244,7 +244,19 @@ def security_reviewer(client, code, tool_findings):
         f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings if f['type'] == 'security')
     return call_llm(client,
-        """You are a Senior Security Engineer reviewing code.
+        """You are a Senior Python Security Reviewer.
+
+Find ONLY real vulnerabilities:
+- SQL injection
+- Command injection
+- Unsafe deserialization
+- Hardcoded secrets
+- Unsafe shell/system calls
+
+Do not hallucinate.
+Give line number + fix.
+Prioritize critical first.
+
 Find ACTUAL security vulnerabilities. For each finding provide:
 1. Line number or code snippet
 2. Vulnerability type (OWASP category if applicable)
@@ -324,8 +336,13 @@ Remove FALSE_POSITIVE findings. Add note: "X/Y findings verified (Z removed as f
 
 def single_agent_review(client, code):
     return call_llm(client,
-        "You are a code reviewer. Review this Python code for bugs, security issues, and style. Provide specific findings with line numbers and fixes.",
-        f"Review this code:\n```\n{code}\n```")
+    """You are a general AI assistant reviewing code.
+
+    Find bugs, security issues, and style issues.
+    Give brief findings with fixes.
+    Do not use specialist depth.
+    """,
+    f"Review this code:\n```\n{code}\n```")
 
 def fix_agent(client, code, final_review):
     return call_llm(client,
@@ -347,8 +364,35 @@ def llm_as_judge(client, code, review_output):
     truncated_review = review_output[:2000] if len(review_output) > 2000 else review_output
     
     return call_llm(client,
-        """Rate this code review 1-5 on: completeness, accuracy, actionability, prioritization, low_hallucination.
-Return ONLY JSON: {"completeness":{"score":X,"note":"..."},"accuracy":{"score":X,"note":"..."},"actionability":{"score":X,"note":"..."},"prioritization":{"score":X,"note":"..."},"low_hallucination":{"score":X,"note":"..."},"total":X,"max":25}""",
+       """You are an expert code review evaluator.
+
+        Rate the review on:
+        1. completeness
+        2. accuracy
+        3. actionability
+        4. prioritization
+        5. low_hallucination
+
+        STRICT RULES:
+        - Missing critical security issues must heavily reduce score.
+        - Missing SQL injection, command injection, unsafe deserialization,
+        hardcoded secrets, mutable defaults = major penalty.
+        - Penalize false claims.
+        - Penalize vague fixes.
+        - Do NOT reward long answers.
+
+        Return ONLY valid JSON:
+        {
+        "completeness":{"score":X,"note":"..."},
+        "accuracy":{"score":X,"note":"..."},
+        "actionability":{"score":X,"note":"..."},
+        "prioritization":{"score":X,"note":"..."},
+        "low_hallucination":{"score":X,"note":"..."},
+        "total":X,
+        "max":25
+        }
+        """,
+        
         f"Code:\n```\n{code}\n```\nReview:\n{truncated_review}\n\nRate this review. JSON only.",
         temperature=0,
         max_tokens=500)  
