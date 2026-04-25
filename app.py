@@ -554,8 +554,14 @@ with st.sidebar:
 
     st.divider()
     if st.button("🗑️ Clear Results", key="clear_results_btn"):
-        for k in ["review_results", "fixed_code", "last_review", "last_code"]:
-            st.session_state.pop(k, None)
+        for k in [
+        "review_results",
+        "fixed_code",
+        "last_review",
+        "last_code",
+        "ablation_results"
+    ]:
+        st.session_state.pop(k, None)
 
         st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
         st.rerun()
@@ -581,13 +587,30 @@ with tab1:
     st.markdown('<p class="hero-title">Multi-Agent Code Review</p>', unsafe_allow_html=True)
     st.markdown('<p class="hero-sub">Approx 4 LLM calls per review (+ Judge separate)</p>', unsafe_allow_html=True)
 
-    sample_choice = st.selectbox("Load sample", ["None"] + list(SAMPLE_CODES.keys()), key="sample_select")
+    sample_choice = st.selectbox(
+        "Load sample",
+        ["None"] + list(SAMPLE_CODES.keys()),
+        key="sample_select"
+    )
 
-    # Only update code, NEVER clear results
     if sample_choice != "None":
         st.session_state["cr_code"] = SAMPLE_CODES[sample_choice]
 
-    code_input = st.text_area("Paste your code", height=250, placeholder="Paste Python code...", key="cr_code")
+    col1, col2 = st.columns([1,3])
+
+    with col1:
+        uploaded_file = st.file_uploader("Upload .py file", type=["py", "txt"])
+
+        if uploaded_file:
+            st.session_state["cr_code"] = uploaded_file.read().decode("utf-8")
+
+    with col2:
+        code_input = st.text_area(
+            "Paste your code",
+            height=420,
+            placeholder="Paste Python code...",
+            key="cr_code"
+        )
 
     run_btn = st.button("🔍 Run Review (4 LLM calls)", type="primary", use_container_width=True)
 
