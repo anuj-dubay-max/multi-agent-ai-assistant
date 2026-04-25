@@ -819,7 +819,8 @@ with tab1:
 
 with tab2:
     st.markdown('<p class="hero-title">Ablation Study</p>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub">7 configs × 3 samples — uses cached results</p>')
+    st.markdown('<p class="hero-sub">7 configs × 3 samples — uses cached results</p>',unsafe_allow_html=True
+)
 
     st.markdown("""
     | Config | Agents | Calls |
