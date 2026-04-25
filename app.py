@@ -250,13 +250,37 @@ def parse_judge_score(raw):
 
 def count_findings(text):
     if not text:
-        return {"critical": 0, "warning": 0, "style": 0, "info": 0, "total": 0}
-    c = max(len(re.findall(r'\bCRITICAL\b', text)), len(re.findall(r'(?i)(sql injection|command injection|hardcoded|pickle.*risk|arbitrary code)', text)))
-    w = max(len(re.findall(r'\bWARNING\b', text)), len(re.findall(r'(?i)(mutable default|assert.*production|unsafe|vulnerable)', text)))
-    s = max(len(re.findall(r'\bSTYLE\b', text)), len(re.findall(r'(?i)(type hint|docstring|naming|readability)', text)))
-    i = max(len(re.findall(r'\bINFO\b', text)), len(re.findall(r'(?i)(consider|suggestion|recommendation)', text)))
-    return {"critical": c, "warning": w, "style": s, "info": i, "total": c + w + s + i}
+        return {"critical":0,"warning":0,"style":0,"info":0,"total":0}
 
+    c = max(
+        len(re.findall(r'\bCRITICAL\b', text)),
+        len(re.findall(r'(?i)(sql injection|command injection|hardcoded|pickle|arbitrary code|secret)', text))
+    )
+
+    w = max(
+        len(re.findall(r'\bWARNING\b', text)),
+        len(re.findall(r'(?i)(mutable default|unsafe|assert.*production|bug risk|edge case|vulnerable)', text))
+    )
+
+    s = max(
+        len(re.findall(r'\bSTYLE\b', text)),
+        len(re.findall(r'(?i)(type hint|docstring|naming|readability|maintainability|refactor|clean code|modular|duplicate code)', text))
+    )
+
+    i = max(
+        len(re.findall(r'\bINFO\b', text)),
+        len(re.findall(r'(?i)(consider|suggestion|recommendation|optional|note|improvement)', text))
+    )
+
+    return {
+        "critical": c,
+        "warning": w,
+        "style": s,
+        "info": i,
+        "total": c+w+s+i
+    }
+    
+    
 # ══════════════════════════════════════════════════════════════
 # DIFF
 # ══════════════════════════════════════════════════════════════
