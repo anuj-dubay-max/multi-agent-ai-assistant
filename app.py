@@ -573,18 +573,18 @@ with st.sidebar:
     st.caption("Multi-Agent Review Architecture")
 
     st.markdown("""
-    🔧 Tool Agent  
-            ↓  
-    🛡️ Security Reviewer + 🐛 Correctness Reviewer  
-            ↓  
-    📝 Synthesizer Agent  
-            ↓  
-    👤 Single-Agent Baseline  
-            ↓  
-    📊 Judge Evaluation  
-            ↓  
+    <div style="text-align:center; line-height:1.8;">
+    🔧 Tool Agent<br>
+    ↓<br>
+    🛡️ Security + 🐛 Correctness<br>
+    ↓<br>
+    📝 Synthesizer<br>
+    ↓<br>
+    📊 Judge<br>
+    ↓<br>
     🔧 Fix Agent
-    """)
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
