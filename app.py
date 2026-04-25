@@ -555,13 +555,13 @@ with st.sidebar:
     st.divider()
     if st.button("🗑️ Clear Results", key="clear_results_btn"):
         for k in [
-        "review_results",
-        "fixed_code",
-        "last_review",
-        "last_code",
-        "ablation_results"
-    ]:
-        st.session_state.pop(k, None)
+            "review_results",
+            "fixed_code",
+            "last_review",
+            "last_code",
+            "ablation_results"
+        ]:
+            st.session_state.pop(k, None)
 
         st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
         st.rerun()
