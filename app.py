@@ -572,11 +572,11 @@ with st.sidebar:
     st.markdown("### 🏗️ Pipeline Config")
     st.caption("Choose which agents to include")
 
-    st.checkbox("Tool Agent", value=True, disabled=True)
-    st.checkbox("Security Reviewer", value=True, disabled=True)
-    st.checkbox("Correctness Reviewer", value=True, disabled=True)
-    st.checkbox("Synthesizer", value=True, disabled=True)
-    st.checkbox("Judge (Optional)", value=True, disabled=True)
+    use_tools = st.checkbox("Tool Agent", value=True)
+    use_security = st.checkbox("Security Reviewer", value=True)
+    use_correctness = st.checkbox("Correctness Reviewer", value=True)
+    use_synth = st.checkbox("Synthesizer", value=True)
+    use_judge = st.checkbox("Judge (Optional)", value=True)
 
     st.divider()
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
