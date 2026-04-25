@@ -569,24 +569,14 @@ with st.sidebar:
                 st.warning("Enter key")
 
     st.divider()
-    st.markdown("### 🏗️ Pipeline Flow")
-    st.caption("Multi-Agent Review Architecture")
+    st.markdown("### 🏗️ Pipeline Config")
+    st.caption("Choose which agents to include")
 
-    st.markdown("""
-    <div style="text-align:center; line-height:1.8;">
-    🔧 Tool Agent<br>
-    ↓<br>
-    🛡️ Security + 🐛 Correctness<br>
-    ↓<br>
-    📝 Synthesizer<br>
-    ↓<br>
-    📊 Judge<br>
-    ↓<br>
-    🔧 Fix Agent
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.divider()
+    use_tools = st.checkbox("Tool Agent", value=True)
+    use_security = st.checkbox("Security Reviewer", value=True)
+    use_correctness = st.checkbox("Correctness Reviewer", value=True)
+    use_synth = st.checkbox("Synthesizer", value=True)
+    use_judge = st.checkbox("Judge (Optional)", value=True)
 
     st.divider()
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
