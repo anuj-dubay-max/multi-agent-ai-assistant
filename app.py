@@ -569,6 +569,16 @@ with st.sidebar:
                 st.warning("Enter key")
 
     st.divider()
+    st.markdown("### 🏗️ Pipeline Config")
+    st.caption("Choose which agents to include")
+
+    st.checkbox("Tool Agent", value=True, disabled=True)
+    st.checkbox("Security Reviewer", value=True, disabled=True)
+    st.checkbox("Correctness Reviewer", value=True, disabled=True)
+    st.checkbox("Synthesizer", value=True, disabled=True)
+    st.checkbox("Judge (Optional)", value=True, disabled=True)
+
+    st.divider()
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
     st.markdown("### 📊 Stats")
     st.caption(f"Calls: {tc['calls']} | Errors: {tc['errors']} | Tokens: {tc['total']:,}")
