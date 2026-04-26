@@ -33,54 +33,67 @@ code, pre, textarea {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* USE STREAMLIT THEME VARIABLES */
+/* MAIN APP */
 .stApp,
-[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+}
+
+/* HEADER */
 [data-testid="stHeader"] {
-    background: var(--background-color);
-    color: var(--text-color);
+    background: #ffffff !important;
 }
 
+/* SIDEBAR */
 [data-testid="stSidebar"] {
-    background: var(--secondary-background-color);
+    background: #f5f7fa !important;
 }
 
-/* Text follows theme */
+[data-testid="stSidebar"] * {
+    color: #111111 !important;
+}
+
+/* TEXT */
 h1,h2,h3,h4,h5,h6,p,span,label,div {
-    color: inherit;
+    color: #111111 !important;
 }
 
-/* Inputs */
+/* INPUTS */
 textarea,
 input,
 select,
 [data-baseweb="select"] > div,
 [data-baseweb="input"] > div {
-    background: var(--secondary-background-color);
-    color: var(--text-color);
-    border: 1px solid rgba(128,128,128,0.3);
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #d0d7de !important;
 }
 
-/* Buttons */
+/* BUTTONS */
 .stButton > button {
-    border-radius: 8px;
+    background: #ff4b4b !important;
+    color: white !important;
+    border-radius: 8px !important;
+    border: none !important;
 }
 
-/* Cards */
+/* CARDS */
 .finding-card,
 .stat-card {
-    background: var(--secondary-background-color);
-    color: var(--text-color);
-    border: 1px solid rgba(128,128,128,0.25);
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #dddddd !important;
     border-radius: 12px;
     padding: 1rem;
 }
 
 .hero-title {font-size:2.6rem;font-weight:800;}
-.hero-sub {opacity:0.75;}
+.hero-sub {color:#555 !important;}
 
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # ══════════════════════════════════════════════════════════════
