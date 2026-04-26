@@ -36,8 +36,8 @@ code, pre, textarea {
 /* MAIN APP */
 .stApp,
 [data-testid="stAppViewContainer"] {
-    background-color: #ffffff !important;
-    color: #111111 !important;
+    # background-color: #ffffff !important;
+    # color: #111111 !important;
 }
 
 /* HEADER */
