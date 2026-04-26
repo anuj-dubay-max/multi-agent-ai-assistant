@@ -29,83 +29,124 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-code, pre {
+code, pre, textarea {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-:root {
-    color-scheme: light dark;
-}
-
+/* Use Streamlit theme colors only */
 .stApp,
-.main,
 [data-testid="stAppViewContainer"],
+.main,
+section.main,
 [data-testid="stHeader"] {
     background: var(--background-color) !important;
     color: var(--text-color) !important;
 }
 
+/* Sidebar */
 [data-testid="stSidebar"] {
     background: var(--secondary-background-color) !important;
+    color: var(--text-color) !important;
 }
 
+[data-testid="stSidebar"] * {
+    color: var(--text-color) !important;
+}
+
+/* Titles */
 .hero-title {
     font-size: 2.8rem;
     font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.05;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
 }
 
 .hero-sub {
-    color: inherit;
-    opacity: 0.7;
+    color: var(--text-color);
+    opacity: 0.75;
+    margin-bottom: 1rem;
 }
 
-.finding-card, .stat-card {
-    background: var(--secondary-background-color);
-    color: var(--text-color);
-    border: 1px solid rgba(128,128,128,0.25);
+/* Cards */
+.finding-card,
+.stat-card {
+    background: var(--secondary-background-color) !important;
+    color: var(--text-color) !important;
+    border: 1px solid rgba(120,120,120,0.25);
     border-radius: 12px;
     padding: 1rem;
 }
 
+/* Finding left border colors */
+.finding-card { border-left: 4px solid transparent; }
+
+.severity-critical { border-left-color: #e53935; }
+.severity-warning  { border-left-color: #fb8c00; }
+.severity-style    { border-left-color: #1e88e5; }
+.severity-info     { border-left-color: #43a047; }
+
+/* Badges */
+.sev-badge {
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:6px;
+    font-size:0.72rem;
+    font-weight:700;
+    margin-right:8px;
+}
+
+.sev-critical { background:#e5393520; color:#e53935; }
+.sev-warning  { background:#fb8c0020; color:#fb8c00; }
+.sev-style    { background:#1e88e520; color:#1e88e5; }
+.sev-info     { background:#43a04720; color:#43a047; }
+
+/* Stats */
+.stat-num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-color);
+}
+
 .stat-label {
-    color: inherit;
+    font-size: 0.75rem;
+    color: var(--text-color);
     opacity: 0.7;
+    letter-spacing: 1px;
 }
 
-html, body, p, div, span, label, li {
-    color: #111111 !important;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    color: #000000 !important;
-}
-
-small, .stCaption, .hero-sub, .stat-label {
-    color: #444444 !important;
-    opacity: 1 !important;
-}
-
-[data-testid="stSidebar"],
-[data-testid="stSidebar"] * {
-    color: #111111 !important;
-}
-
-[data-testid="stSidebar"] {
-    background: #f3f4f6 !important;
-}
-
+/* Inputs */
 textarea,
 input,
-select {
-    background: #ffffff !important;
-    color: #111111 !important;
+select,
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div {
+    background: var(--secondary-background-color) !important;
+    color: var(--text-color) !important;
 }
 
+/* Buttons */
 button,
 .stButton button {
-    color: #111111 !important;
+    border-radius: 10px !important;
 }
 
+/* Diff */
+.diff-add {
+    background:#1b5e2030;
+    color:#2e7d32;
+    padding:2px 5px;
+    border-radius:4px;
+}
+
+.diff-remove {
+    background:#b71c1c30;
+    color:#c62828;
+    padding:2px 5px;
+    border-radius:4px;
+    text-decoration: line-through;
+}
 </style>
 """, unsafe_allow_html=True)
 
