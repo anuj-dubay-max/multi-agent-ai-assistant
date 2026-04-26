@@ -33,122 +33,68 @@ code, pre, textarea {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Use Streamlit theme colors only */
+/* MAIN APP */
 .stApp,
-[data-testid="stAppViewContainer"],
-.main,
-section.main,
-[data-testid="stHeader"] {
-    background: var(--background-color) !important;
-    color: var(--text-color) !important;
+[data-testid="stAppViewContainer"] {
+    background-color: #ffffff !important;
+    color: #111111 !important;
 }
 
-/* Sidebar */
+/* HEADER */
+[data-testid="stHeader"] {
+    background: #ffffff !important;
+}
+
+/* SIDEBAR */
 [data-testid="stSidebar"] {
-    background: var(--secondary-background-color) !important;
-    color: var(--text-color) !important;
+    background: #f5f7fa !important;
 }
 
 [data-testid="stSidebar"] * {
-    color: var(--text-color) !important;
+    color: #111111 !important;
 }
 
-/* Titles */
-.hero-title {
-    font-size: 2.8rem;
-    font-weight: 800;
-    letter-spacing: -1px;
-    line-height: 1.05;
-    color: var(--text-color);
-    margin-bottom: 0.25rem;
+/* TEXT */
+h1,h2,h3,h4,h5,h6,p,span,label,div {
+    color: #111111 !important;
 }
 
-.hero-sub {
-    color: var(--text-color);
-    opacity: 0.75;
-    margin-bottom: 1rem;
-}
-
-/* Cards */
-.finding-card,
-.stat-card {
-    background: var(--secondary-background-color) !important;
-    color: var(--text-color) !important;
-    border: 1px solid rgba(120,120,120,0.25);
-    border-radius: 12px;
-    padding: 1rem;
-}
-
-/* Finding left border colors */
-.finding-card { border-left: 4px solid transparent; }
-
-.severity-critical { border-left-color: #e53935; }
-.severity-warning  { border-left-color: #fb8c00; }
-.severity-style    { border-left-color: #1e88e5; }
-.severity-info     { border-left-color: #43a047; }
-
-/* Badges */
-.sev-badge {
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:6px;
-    font-size:0.72rem;
-    font-weight:700;
-    margin-right:8px;
-}
-
-.sev-critical { background:#e5393520; color:#e53935; }
-.sev-warning  { background:#fb8c0020; color:#fb8c00; }
-.sev-style    { background:#1e88e520; color:#1e88e5; }
-.sev-info     { background:#43a04720; color:#43a047; }
-
-/* Stats */
-.stat-num {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--text-color);
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    color: var(--text-color);
-    opacity: 0.7;
-    letter-spacing: 1px;
-}
-
-/* Inputs */
+/* INPUTS */
 textarea,
 input,
 select,
 [data-baseweb="select"] > div,
 [data-baseweb="input"] > div {
-    background: var(--secondary-background-color) !important;
-    color: var(--text-color) !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #d0d7de !important;
 }
 
-/* Buttons */
+/* BUTTONS */
 button,
 .stButton button {
-    border-radius: 10px !important;
+    background: #ff4b4b !important;
+    color: white !important;
+    border-radius: 8px !important;
+    border: none !important;
 }
 
-/* Diff */
-.diff-add {
-    background:#1b5e2030;
-    color:#2e7d32;
-    padding:2px 5px;
-    border-radius:4px;
+/* CARDS */
+.finding-card,
+.stat-card {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #dddddd !important;
+    border-radius: 12px;
+    padding: 1rem;
 }
 
-.diff-remove {
-    background:#b71c1c30;
-    color:#c62828;
-    padding:2px 5px;
-    border-radius:4px;
-    text-decoration: line-through;
-}
+.hero-title {font-size:2.6rem;font-weight:800;}
+.hero-sub {color:#555 !important;}
+
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # ══════════════════════════════════════════════════════════════
