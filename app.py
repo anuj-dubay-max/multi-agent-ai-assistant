@@ -72,6 +72,40 @@ code, pre {
     opacity: 0.7;
 }
 
+html, body, p, div, span, label, li {
+    color: #111111 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #000000 !important;
+}
+
+small, .stCaption, .hero-sub, .stat-label {
+    color: #444444 !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] * {
+    color: #111111 !important;
+}
+
+[data-testid="stSidebar"] {
+    background: #f3f4f6 !important;
+}
+
+textarea,
+input,
+select {
+    background: #ffffff !important;
+    color: #111111 !important;
+}
+
+button,
+.stButton button {
+    color: #111111 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
