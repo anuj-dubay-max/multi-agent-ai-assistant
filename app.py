@@ -33,31 +33,25 @@ code, pre, textarea {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* MAIN APP */
-.stApp,
-[data-testid="stAppViewContainer"] {
-    background-color: #ffffff !important;
-    color: #111111 !important;
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
 }
 
-/* HEADER */
-[data-testid="stHeader"] {
-    background: #ffffff !important;
+code, pre, textarea {
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* SIDEBAR */
-[data-testid="stSidebar"] {
-    background: #f5f7fa !important;
+/* Keep theme-controlled colors */
+.hero-title {font-size:2.6rem;font-weight:800;}
+.hero-sub {opacity:0.75;}
+
+.finding-card,
+.stat-card {
+    border:1px solid rgba(128,128,128,0.25);
+    border-radius:12px;
+    padding:1rem;
 }
 
-[data-testid="stSidebar"] * {
-    color: #111111 !important;
-}
-
-/* TEXT */
-h1,h2,h3,h4,h5,h6,p,span,label,div {
-    color: #111111 !important;
-}
 
 /* INPUTS */
 textarea,
