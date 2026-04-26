@@ -874,7 +874,7 @@ with tab1:
             marker_color=['#ff6666', '#ffcc44', '#6699ff', '#66ddaa']))
         fig.update_layout(barmode='group', title="Findings by Severity",
             yaxis_title="Count", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            template="plotly_white", height=350)
+            template="streamlit", height=350)
         st.plotly_chart(fig, use_container_width=True)
 
         # Reviews
@@ -1025,7 +1025,7 @@ with tab2:
             fig.update_layout(
                 title="Aggregate Score",
                 yaxis=dict(range=[0, 28]),
-                template="plotly_white",
+                template="streamlit",
                 paper_bgcolor="white",
                 plot_bgcolor="white",
                 font=dict(color="#111"),
@@ -1047,7 +1047,7 @@ with tab2:
                 fig2.update_layout(
                     title="Agent Contribution",
                     yaxis_title="Delta",
-                    template="plotly_white",
+                    template="streamlit",
                     paper_bgcolor="white",
                     plot_bgcolor="white",
                     font=dict(color="#111"),
