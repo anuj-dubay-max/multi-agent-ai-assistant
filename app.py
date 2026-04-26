@@ -24,27 +24,104 @@ st.set_page_config(page_title="Multi-Agent Code Review", page_icon="🔍", layou
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-code, pre { font-family: 'JetBrains Mono', monospace !important; }
-.hero-title { font-size: 2.8rem; font-weight: 800; letter-spacing: -1.5px; line-height: 1.05; margin-bottom: 0.3rem; }
-.hero-sub { font-size: 1rem; color: #888; font-weight: 300; margin-bottom: 1.5rem; }
-.finding-card { border-left: 3px solid; border-radius: 0 8px 8px 0; padding: 0.8rem 1rem; margin: 0.4rem 0; background: #111; font-size: 0.88rem; }
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+code, pre {
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+.hero-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin-bottom: 0.3rem;
+}
+
+.hero-sub {
+    font-size: 1rem;
+    color: var(--text-color);
+    opacity: 0.7;
+    font-weight: 300;
+    margin-bottom: 1.5rem;
+}
+
+.finding-card {
+    border-left: 3px solid;
+    border-radius: 0 8px 8px 0;
+    padding: 0.8rem 1rem;
+    margin: 0.4rem 0;
+    background: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-background-color);
+    font-size: 0.88rem;
+}
+
 .severity-critical { border-left-color: #ff4444; }
 .severity-warning  { border-left-color: #ffaa00; }
 .severity-style    { border-left-color: #4488ff; }
 .severity-info     { border-left-color: #44bb88; }
-.sev-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-right: 8px; }
+
+.sev-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 8px;
+}
+
 .sev-critical { background: #ff444433; color: #ff6666; }
 .sev-warning  { background: #ffaa0033; color: #ffbb33; }
 .sev-style    { background: #4488ff33; color: #6699ff; }
-.sev-info     { background: #44bb8833; color: #66ddaa; }
-.stat-card { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.2rem; text-align: center; }
-.stat-num { font-size: 2.2rem; font-weight: 800; line-height: 1; }
-.stat-label { font-size: 0.75rem; color: #666; letter-spacing: 2px; text-transform: uppercase; margin-top: 0.3rem; }
-.diff-add { background: #1a3a1a; color: #66ddaa; padding: 2px 4px; border-radius: 3px; }
-.diff-remove { background: #3a1a1a; color: #ff6666; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; }
+.sev-info     { background: #44bb8833; color: #44bb88; }
+
+.stat-card {
+    background: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid var(--secondary-background-color);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+}
+
+.stat-num {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-color);
+    opacity: 0.7;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+}
+
+.diff-add {
+    background: #d4edda;
+    color: #155724;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.diff-remove {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 2px 4px;
+    border-radius: 3px;
+    text-decoration: line-through;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════════════════════
 # CONFIG
