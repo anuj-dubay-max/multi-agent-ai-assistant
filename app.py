@@ -37,6 +37,18 @@ code, pre {
     color-scheme: light dark;
 }
 
+.stApp,
+.main,
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"] {
+    background: var(--background-color) !important;
+    color: var(--text-color) !important;
+}
+
+[data-testid="stSidebar"] {
+    background: var(--secondary-background-color) !important;
+}
+
 .hero-title {
     font-size: 2.8rem;
     font-weight: 800;
@@ -996,8 +1008,15 @@ with tab2:
                 y=[agg[c]["mean"] for c in cfgs], marker_color=colors[:len(cfgs)],
                 text=[f"{agg[c]['mean']}±{agg[c]['std']}" for c in cfgs], textposition="outside",
                 error_y=dict(type='data', array=[agg[c]["std"] for c in cfgs], visible=True)))
-            fig.update_layout(title="Aggregate Score", yaxis=dict(range=[0, 28]),
-                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ccc"), height=400)
+            fig.update_layout(
+                title="Aggregate Score",
+                yaxis=dict(range=[0, 28]),
+                template="plotly_white",
+                paper_bgcolor="white",
+                plot_bgcolor="white",
+                font=dict(color="#111"),
+                height=400
+            )
             st.plotly_chart(fig, use_container_width=True)
 
             # Contribution
@@ -1011,8 +1030,14 @@ with tab2:
                 fig2.add_trace(go.Bar(x=list(contrib.keys()), y=list(contrib.values()),
                     marker_color=["#4caf50" if v > 0 else "#e05252" for v in contrib.values()],
                     text=[f"+{v}" if v >= 0 else str(v) for v in contrib.values()], textposition="outside"))
-                fig2.update_layout(title="Agent Contribution", yaxis_title="Delta",
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#ccc"), height=350)
+                fig2.update_layout(
+                    title="Agent Contribution",
+                    yaxis_title="Delta",
+                    template="plotly_white",
+                    paper_bgcolor="white",
+                    plot_bgcolor="white",
+                    font=dict(color="#111"),
+                    height=350)
                 st.plotly_chart(fig2, use_container_width=True)
                 top = max(contrib, key=contrib.get)
                 st.success(f"🔑 **{top}** contributes most (+{contrib[top]} pts)")
