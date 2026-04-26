@@ -36,8 +36,8 @@ code, pre, textarea {
 /* MAIN APP */
 .stApp,
 [data-testid="stAppViewContainer"] {
-    # background-color: #ffffff !important;
-    # color: #111111 !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
 }
 
 /* HEADER */
@@ -71,8 +71,7 @@ select,
 }
 
 /* BUTTONS */
-button,
-.stButton button {
+.stButton > button {
     background: #ff4b4b !important;
     color: white !important;
     border-radius: 8px !important;
