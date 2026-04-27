@@ -25,78 +25,185 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* ── Force light background ── */
-.stApp, .stApp > div, [data-testid="stSidebar"] {
+/* ════════════════ FORCE LIGHT EVERYWHERE ════════════════ */
+
+/* Main app background */
+.stApp,
+.stApp > div,
+.stApp > div > div,
+section.main,
+div[data-testid="stMain"] {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div,
+section[data-testid="stSidebar"] div,
+[data-testid="stSidebar"] {
+    background-color: #f0f2f5 !important;
+}
+section[data-testid="stSidebar"] * {
+    color: #1a1a1a !important;
+}
+
+/* All text */
+p, span, div, li, td, th, label, h1, h2, h3, h4, h5, h6,
+.stMarkdown, .stText, .stCaption, .stHeading {
+    color: #1a1a1a !important;
+}
+
+/* Code blocks */
+pre, code, [data-testid="stCodeBlock"],
+.stCode, .stCodeBlock {
+    background-color: #f5f5f5 !important;
+    color: #1a1a1a !important;
+    border: 1px solid #ddd !important;
+}
+
+/* Text areas and inputs */
+.stTextArea textarea,
+.stTextInput input,
+.stSelectbox select,
+.stFileUploader,
+[data-baseweb="textarea"],
+[data-baseweb="input"],
+[data-baseweb="select"] {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+    border-color: #ccc !important;
+}
+
+/* Buttons */
+.stButton > button,
+.kgDCAk,
+.j9ecNz {
+    color: #ffffff !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: #f0f2f5 !important;
+}
+.stTabs [data-baseweb="tab-list"] button {
+    color: #555 !important;
+    background-color: transparent !important;
+}
+.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+    color: #ff4b4b !important;
+    background-color: #ffffff !important;
+    border-bottom: 2px solid #ff4b4b !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+/* Checkboxes and radio */
+.stCheckbox label, .stRadio label {
+    color: #1a1a1a !important;
+}
+
+/* Progress bar */
+.stProgress > div > div {
+    background-color: #ff4b4b !important;
+}
+
+/* Info/Success/Error/Warning boxes */
+.stAlert, .stException {
+    color: #1a1a1a !important;
+}
+[data-testid="stAlert"] {
+    background-color: #f8f9fa !important;
+    color: #1a1a1a !important;
+}
+[data-testid="stAlertInfo"] { border-left: 4px solid #2196F3 !important; }
+[data-testid="stAlertSuccess"] { border-left: 4px solid #4CAF50 !important; }
+[data-testid="stAlertWarning"] { border-left: 4px solid #FF9800 !important; }
+[data-testid="stAlertError"] { border-left: 4px solid #F44336 !important; }
+
+/* Spinner */
+.stSpinner > div {
+    border-top-color: #ff4b4b !important;
+}
+
+/* Expander */
+.streamlit-expanderHeader {
+    color: #1a1a1a !important;
+    background-color: #f8f9fa !important;
+}
+.streamlit-expanderContent {
     background-color: #ffffff !important;
 }
 
-/* ── Fonts ── */
-.stApp { font-family: 'Inter', sans-serif; }
+/* Divider */
+.hr-dash-line, .stDivider {
+    border-color: #ddd !important;
+}
+
+/* Plotly charts - force white background */
+.js-plotly-plot, .plotly, .plot-container {
+    background-color: #ffffff !important;
+}
+
+/* ════════════════ YOUR CUSTOM STYLES ════════════════ */
+
+/* Fonts */
+.stApp { font-family: 'Inter', sans-serif !important; }
 code, pre, textarea, .stCode {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* ── Typography ── */
-.hero-title { font-size: 2.6rem; font-weight: 800; color: #1a1a1a; }
-.hero-sub { opacity: 0.75; color: #555; }
+/* Hero */
+.hero-title { font-size: 2.6rem !important; font-weight: 800 !important; color: #1a1a1a !important; }
+.hero-sub { opacity: 0.75 !important; color: #555 !important; }
 
-/* ── Cards ── */
+/* Cards */
 .finding-card,
 .stat-card {
-    background: #f8f9fa;
-    color: #1a1a1a;
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: 12px;
-    padding: 1rem;
-}
-
-.stat-label { font-size: 0.85rem; opacity: 0.8; color: #555; }
-.stat-num { font-size: 1.8rem; font-weight: 700; }
-
-/* ── Inputs ── */
-textarea, input, select,
-[data-baseweb="select"] > div,
-[data-baseweb="input"] > div {
-    background: #ffffff !important;
+    background: #f8f9fa !important;
     color: #1a1a1a !important;
-    border: 1px solid rgba(0,0,0,0.15) !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    border-radius: 12px !important;
+    padding: 1rem !important;
+    margin-bottom: 0.5rem !important;
 }
 
-/* ── Buttons ── */
+.stat-label {
+    font-size: 0.85rem !important;
+    opacity: 0.8 !important;
+    color: #555 !important;
+}
+
+.stat-num {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+}
+
+/* Severity badges */
+.sev-badge {
+    display: inline-block !important;
+    padding: 2px 8px !important;
+    border-radius: 4px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    margin-right: 6px !important;
+}
+.sev-critical { background: rgba(255,68,68,0.12) !important; color: #dc3545 !important; }
+.sev-warning  { background: rgba(255,170,0,0.12) !important; color: #e67700 !important; }
+.sev-style    { background: rgba(68,136,255,0.12) !important; color: #2563eb !important; }
+.sev-info     { background: rgba(68,187,136,0.12) !important; color: #059669 !important; }
+
+/* Diff */
+.diff-add    { background: rgba(0,150,0,0.1) !important; color: #166534 !important; }
+.diff-remove { background: rgba(220,0,0,0.1) !important; color: #991b1b !important; }
+
+/* Buttons rounded */
 .stButton > button {
     border-radius: 8px !important;
     border: none !important;
-}
-
-/* ── Severity Badges ── */
-.sev-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-right: 6px;
-}
-.sev-critical { background: rgba(255,68,68,0.12); color: #dc3545; }
-.sev-warning  { background: rgba(255,170,0,0.12); color: #e67700; }
-.sev-style    { background: rgba(68,136,255,0.12); color: #2563eb; }
-.sev-info     { background: rgba(68,187,136,0.12); color: #059669; }
-
-/* ── Diff ── */
-.diff-add    { background: rgba(0,150,0,0.1); color: #166534; }
-.diff-remove { background: rgba(220,0,0,0.1); color: #991b1b; }
-
-/* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background-color: #f8f9fa !important;
-}
-[data-testid="stSidebar"] * {
-    color: #1a1a1a !important;
-}
-
-/* ── Tab text ── */
-.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-    color: #1a1a1a;
 }
 </style>
 """, unsafe_allow_html=True)
