@@ -1032,9 +1032,9 @@ with tab2:
                 template="streamlit",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                template="streamlit",
                 height=400
             )
+
             st.plotly_chart(fig, use_container_width=True)
 
             # Contribution
