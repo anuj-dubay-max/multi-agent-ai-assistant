@@ -32,8 +32,8 @@ st.markdown("""
     color: #111111;
 }
 
-/* Main text everywhere */
-html, body, p, span, label, div, li, h1, h2, h3, h4, h5, h6 {
+/* Main text everywhere (exclude code blocks) */
+html, body, p, label, div, li, h1, h2, h3, h4, h5, h6 {
     color: #111111;
 }
 
@@ -165,8 +165,8 @@ div[data-testid="stMarkdownContainer"] pre code {
 }
 
 
-.stButton > button:hover {
-    background: #1f2937 !important;
+.stButton > button[kind="primary"]:hover {
+    background: #b91c1c !important;
     color: #ffffff !important;
 }
 
@@ -179,6 +179,44 @@ section[data-testid="stFileUploader"] button {
 /* Metrics / labels */
 [data-testid="stMetricLabel"],
 [data-testid="stMetricValue"] {
+    color: #111111 !important;
+}
+
+/* Force markdown code blocks readable in all themes */
+pre code,
+pre code span,
+code span,
+.stMarkdown pre,
+.stMarkdown pre code,
+div[data-testid="stMarkdownContainer"] pre code,
+div[data-testid="stMarkdownContainer"] pre code span {
+    color: #111111 !important;
+    background: transparent !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #111111 !important;
+}
+
+/* outer block */
+pre {
+    background: #f8f9fb !important;
+    border: 1px solid #dddddd !important;
+}
+
+/* Paper copy textareas fix */
+textarea,
+textarea:focus,
+textarea:disabled,
+div[data-baseweb="textarea"] textarea,
+div[data-testid="stTextArea"] textarea {
+    background: #f8f9fb !important;
+    color: #111111 !important;
+    -webkit-text-fill-color: #111111 !important;
+    caret-color: #111111 !important;
+    opacity: 1 !important;
+}
+
+/* Label above paper boxes */
+div[data-testid="stTextArea"] label {
     color: #111111 !important;
 }
 
