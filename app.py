@@ -52,11 +52,11 @@ textarea {
 .hero-title {
     font-size: 2.6rem;
     font-weight: 800;
-    color: #111111;
+    color: inherit;
 }
 
 .hero-sub {
-    color: #444444;
+    color: #555555;
     opacity: 1;
     font-size: 1rem;
 }
