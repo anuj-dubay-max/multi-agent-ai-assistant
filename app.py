@@ -80,96 +80,27 @@ if "token_count" not in st.session_state:
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-
-html, body, .stApp, [data-testid="stAppViewContainer"]{
-    background:#ffffff !important;
-    color:#111111 !important;
-    font-family:'Inter', sans-serif;
-}
-
-/* main content wrapper only */
 [data-testid="stMainBlockContainer"]{
     padding-top:2rem !important;
     max-width:1200px !important;
 }
 
-/* sidebar */
-[data-testid="stSidebar"]{
-    background:#f5f6f8 !important;
-}
-[data-testid="stSidebar"] *{
-    color:#111111 !important;
-}
-
-/* text */
-p, label, span{
-    color:#111111 !important;
-}
-
-h1,h2,h3,h4{
-    color:#111111 !important;
-}
-
-[data-testid="stTabs"] button{
-    padding:0.75rem 1rem !important;
-    min-height:48px !important;
-    white-space:nowrap !important;
-}
-
-/* inputs */
-textarea, input, select{
-    background:#ffffff !important;
-    color:#111111 !important;
-}
-
-/* buttons */
 button{
     border-radius:10px !important;
 }
-/* Better tab/content sizing */
-h1 {font-size: 2.4rem !important;}
-h2 {font-size: 2rem !important;}
-h3 {font-size: 1.6rem !important;}
-p, li, div {font-size: 1.05rem !important;}
 
-/* Tabs bigger */
+h1 {font-size:2.4rem !important;}
+h2 {font-size:2rem !important;}
+h3 {font-size:1.6rem !important;}
+
 button[data-baseweb="tab"]{
     font-size:1rem !important;
     font-weight:600 !important;
 }
 
-/* Fix methodology / tab page text */
-[data-testid="stMarkdownContainer"]{
-    font-size:1.05rem !important;
+pre{
+    border-radius:12px !important;
 }
-
-/* Flow code block visible */
-pre {
-    background:#111827 !important;
-    color:#ffffff !important;
-}
-
-code {
-    background:transparent !important;
-    color:#ffffff !important;
-}
-
-/* Also for markdown code blocks */
-[data-testid="stMarkdownContainer"] pre,
-[data-testid="stMarkdownContainer"] code{
-    color:#ffffff !important;
-    background:#111827 !important;
-}
-table {
-    font-size: 18px !important;
-    width: 100% !important;
-}
-
-th, td {
-    padding: 10px !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
