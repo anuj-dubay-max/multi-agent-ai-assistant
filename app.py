@@ -25,8 +25,8 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* Force white mode */
-html, body, [data-testid="stAppViewContainer"], .stApp {
+html, body, .stApp, [data-testid="stAppViewContainer"], 
+[data-testid="stHeader"], [data-testid="stMain"] {
     background: #ffffff !important;
     color: #111111 !important;
     font-family: 'Inter', sans-serif;
@@ -41,11 +41,10 @@ section[data-testid="stSidebar"] * {
     color: #111111 !important;
 }
 
-/* Subtitle */
-.hero-sub {
-    color: #555555 !important;
-    opacity: 1;
-    font-size: 1rem;
+[data-testid="stVerticalBlock"],
+[data-testid="stMarkdownContainer"],
+section.main {
+    background:#ffffff !important;
 }
 
 </style>
@@ -835,8 +834,8 @@ with tab1:
             y=[mf.get(c, 0) for c in cats],
             marker_color=['#ff6666', '#ffcc44', '#6699ff', '#66ddaa']))
         fig.update_layout(barmode='group', title="Findings by Severity",
-            yaxis_title="Count", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-            template="streamlit", height=350)
+            yaxis_title="Count", plot_bgcolor="#ffffff", paper_bgcolor="#ffffff",
+            template="plotly_white", height=350)
         st.plotly_chart(fig, use_container_width=True)
 
         # Reviews
@@ -987,7 +986,7 @@ with tab2:
             fig.update_layout(
                 title="Aggregate Score",
                 yaxis=dict(range=[0, 28]),
-                template="streamlit",
+                template="plotly_white",
                 paper_bgcolor="white",
                 plot_bgcolor="white",
                 font=dict(color="#111"),
@@ -1009,7 +1008,7 @@ with tab2:
                 fig2.update_layout(
                     title="Agent Contribution",
                     yaxis_title="Delta",
-                    template="streamlit",
+                    template="plotly_white",
                     paper_bgcolor="white",
                     plot_bgcolor="white",
                     font=dict(color="#111"),
