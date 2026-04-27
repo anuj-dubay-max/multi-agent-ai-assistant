@@ -21,6 +21,21 @@ import plotly.graph_objects as go
 
 load_dotenv()
 
+def get_client():
+    api_key = (
+        os.getenv("GROQ_API_KEY")
+        or st.secrets.get("GROQ_API_KEY", None)
+        or st.session_state.get("groq_api_key", None)
+    )
+
+    if not api_key:
+        return None
+
+    try:
+        return Groq(api_key=api_key)
+    except Exception:
+        return None
+
 MEMORY_FILE = "review_memory.json"
 ABLATION_CACHE = "ablation_cache.json"
 
