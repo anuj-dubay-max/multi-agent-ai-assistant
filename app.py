@@ -36,7 +36,7 @@ html, body, p, label, li, h1, h2, h3, h4, h5, h6 {
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: transparent;
+    background: #ffffff !important;
 }
 
 /* Code font */
