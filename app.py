@@ -25,46 +25,41 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* ── Fonts ── */
-.stApp {
-    font-family: 'Inter', sans-serif;
+/* ── Force light background ── */
+.stApp, .stApp > div, [data-testid="stSidebar"] {
+    background-color: #ffffff !important;
 }
+
+/* ── Fonts ── */
+.stApp { font-family: 'Inter', sans-serif; }
 code, pre, textarea, .stCode {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
 /* ── Typography ── */
-.hero-title { font-size: 2.6rem; font-weight: 800; color: var(--text-color); }
-.hero-sub { opacity: 0.75; color: var(--text-color); }
+.hero-title { font-size: 2.6rem; font-weight: 800; color: #1a1a1a; }
+.hero-sub { opacity: 0.75; color: #555; }
 
-/* ── Cards (Uses theme variables so it works in Light & Dark) ── */
+/* ── Cards ── */
 .finding-card,
 .stat-card {
-    background: var(--secondary-background-color);
-    color: var(--text-color);
-    border: 1px solid rgba(128,128,128,0.25);
+    background: #f8f9fa;
+    color: #1a1a1a;
+    border: 1px solid rgba(0,0,0,0.1);
     border-radius: 12px;
     padding: 1rem;
 }
 
-.stat-label { 
-    font-size: 0.85rem; 
-    opacity: 0.8;
-    color: var(--text-color);
-}
-
-.stat-num { 
-    font-size: 1.8rem; 
-    font-weight: 700; 
-}
+.stat-label { font-size: 0.85rem; opacity: 0.8; color: #555; }
+.stat-num { font-size: 1.8rem; font-weight: 700; }
 
 /* ── Inputs ── */
 textarea, input, select,
 [data-baseweb="select"] > div,
 [data-baseweb="input"] > div {
-    background: var(--secondary-background-color);
-    color: var(--text-color);
-    border: 1px solid rgba(128,128,128,0.3);
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
 }
 
 /* ── Buttons ── */
@@ -82,17 +77,29 @@ textarea, input, select,
     font-weight: 700;
     margin-right: 6px;
 }
-.sev-critical { background: rgba(255,68,68,0.15); color: #ff4444; }
-.sev-warning  { background: rgba(255,170,0,0.15); color: #ffaa00; }
-.sev-style    { background: rgba(68,136,255,0.15); color: #4488ff; }
-.sev-info     { background: rgba(68,187,136,0.15); color: #44bb88; }
+.sev-critical { background: rgba(255,68,68,0.12); color: #dc3545; }
+.sev-warning  { background: rgba(255,170,0,0.12); color: #e67700; }
+.sev-style    { background: rgba(68,136,255,0.12); color: #2563eb; }
+.sev-info     { background: rgba(68,187,136,0.12); color: #059669; }
 
 /* ── Diff ── */
-.diff-add    { background: rgba(0,180,0,0.15); }
-.diff-remove { background: rgba(255,0,0,0.15); }
+.diff-add    { background: rgba(0,150,0,0.1); color: #166534; }
+.diff-remove { background: rgba(220,0,0,0.1); color: #991b1b; }
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background-color: #f8f9fa !important;
+}
+[data-testid="stSidebar"] * {
+    color: #1a1a1a !important;
+}
+
+/* ── Tab text ── */
+.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    color: #1a1a1a;
+}
 </style>
 """, unsafe_allow_html=True)
-
 
 # ══════════════════════════════════════════════════════════════
 # CONFIG
