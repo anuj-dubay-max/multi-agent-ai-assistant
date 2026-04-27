@@ -25,11 +25,10 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* App */
 .stApp {
     font-family: 'Inter', sans-serif;
-    background: #ffffff;
-    color: #111111;
+    background: #ffffff !important;
+    color: #111111 !important;
 }
 
 /* Main text everywhere (exclude code blocks) */
