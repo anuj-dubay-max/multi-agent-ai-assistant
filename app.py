@@ -25,16 +25,11 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-.hero-sub {
-    color: #555555;html, body, [data-testid="stAppViewContainer"], .stApp {
+/* Force white mode */
+html, body, [data-testid="stAppViewContainer"], .stApp {
     background: #ffffff !important;
     color: #111111 !important;
     font-family: 'Inter', sans-serif;
-}
-
-/* Main text everywhere (exclude code blocks) */
-html, body, p, label, li, h1, h2, h3, h4, h5, h6 {
-    color: inherit;
 }
 
 /* Sidebar */
@@ -46,188 +41,11 @@ section[data-testid="stSidebar"] * {
     color: #111111 !important;
 }
 
-/* Code font */
-code, pre, .stCode {
-    font-family: 'JetBrains Mono', monospace !important;
-}
-
-textarea {
-    font-family: 'JetBrains Mono', monospace !important;
-}
-
-/* Titles */
-.hero-title {
-    font-size: 2.6rem;
-    font-weight: 800;
-    color: inherit;
-}
-
+/* Subtitle */
 .hero-sub {
-    color: #555555;
+    color: #555555 !important;
     opacity: 1;
     font-size: 1rem;
-}
-
-/* Cards */
-.finding-card,
-.stat-card {
-    border: 1px solid #dddddd;
-    border-radius: 12px;
-    padding: 1rem;
-    background: #ffffff;
-    color: #111111;
-}
-
-/* Inputs */
-textarea, input, select,
-[data-baseweb="select"] > div,
-[data-baseweb="input"] > div {
-    border: 1px solid #cccccc;
-    border-radius: 8px;
-    background: #ffffff !important;
-    color: #111111 !important;
-}
-
-/* Placeholder */
-textarea::placeholder,
-input::placeholder {
-    color: #777777 !important;
-}
-
-/* Default buttons */
-.stButton > button {
-    background: #2563eb !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 700 !important;
-    padding: 0.55rem 1rem !important;
-    font-size: 15px !important;
-}
-
-/* Hover */
-.stButton > button:hover {
-    background: #1d4ed8 !important;
-    color: #ffffff !important;
-}
-
-/* Main Run Review button = RED */
-.stButton > button[kind="primary"] {
-    background: #dc2626 !important;
-    color: #ffffff !important;
-}
-
-.stButton > button[kind="primary"]:hover {
-    background: #b91c1c !important;
-    color: #ffffff !important;
-}
-
-/* Disabled buttons */
-.stButton > button:disabled {
-    background: #9ca3af !important;
-    color: #ffffff !important;
-    opacity: 0.8 !important;
-}
-
-/* Tabs */
-button[data-baseweb="tab"] {
-    color: #111111 !important;
-}
-
-/* Badges */
-.sev-badge {
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:6px;
-    font-size:0.75rem;
-    font-weight:700;
-    margin-right:6px;
-}
-.sev-critical { background:#ffe5e5; color:#c62828; }
-.sev-warning  { background:#fff4d6; color:#b26a00; }
-.sev-style    { background:#e8f0ff; color:#1e5eff; }
-.sev-info     { background:#e5f8ee; color:#0d8a4b; }
-
-.diff-add { background:#e8f5e9; }
-.diff-remove { background:#ffebee; }
-
-/* Code block boxes */
-pre, .stCodeBlock, .stCode {
-    background: #f8f9fb !important;
-    color: #111111 !important;
-    border: 1px solid #dddddd !important;
-    border-radius: 10px !important;
-}
-
-code {
-    color: inherit !important;
-    background: transparent !important;
-}
-
-div[data-testid="stMarkdownContainer"] pre {
-    background: #f8f9fb !important;
-    color: #111111 !important;
-}
-
-div[data-testid="stMarkdownContainer"] pre code {
-    color: #111111 !important;
-    background: transparent !important;
-}
-
-
-.stButton > button[kind="primary"]:hover {
-    background: #b91c1c !important;
-    color: #ffffff !important;
-}
-
-/* File uploader button */
-section[data-testid="stFileUploader"] button {
-    background: #111827 !important;
-    color: #ffffff !important;
-}
-
-/* Metrics / labels */
-[data-testid="stMetricLabel"],
-[data-testid="stMetricValue"] {
-    color: #111111 !important;
-}
-
-/* Force markdown code blocks readable in all themes */
-pre code,
-pre code span,
-code span,
-.stMarkdown pre,
-.stMarkdown pre code,
-div[data-testid="stMarkdownContainer"] pre code,
-div[data-testid="stMarkdownContainer"] pre code span {
-    color: #111111 !important;
-    background: transparent !important;
-    opacity: 1 !important;
-    -webkit-text-fill-color: #111111 !important;
-}
-
-/* outer block */
-pre {
-    background: #f8f9fb !important;
-    border: 1px solid #dddddd !important;
-}
-
-/* Paper copy textareas fix */
-textarea,
-textarea:focus,
-textarea:disabled,
-div[data-baseweb="textarea"] textarea,
-div[data-testid="stTextArea"] textarea {
-    background: #f8f9fb !important;
-    color: #111111 !important;
-    -webkit-text-fill-color: #111111 !important;
-    caret-color: #111111 !important;
-    opacity: 1 !important;
-}
-
-/* Label above paper boxes */
-div[data-testid="stTextArea"] label {
-    color: #111111 !important;
 }
 
 </style>
