@@ -26,6 +26,13 @@ ABLATION_CACHE = "ablation_cache.json"
 
 st.set_page_config(page_title="Multi-Agent Code Review", page_icon="🔍", layout="wide")
 
+if "token_count" not in st.session_state:
+    st.session_state["token_count"] = {
+        "total": 0,
+        "calls": 0,
+        "errors": 0
+    }
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
