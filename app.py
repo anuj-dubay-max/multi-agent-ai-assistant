@@ -1097,15 +1097,14 @@ with tab2:
                     marker_color=["#4caf50" if v > 0 else "#e05252" for v in contrib.values()],
                     text=[f"+{v}" if v >= 0 else str(v) for v in contrib.values()], textposition="outside"))
                 
-                fig.update_layout(
-                        barmode='group',
-                        title="Findings by Severity",
-                        yaxis_title="Count",
+                fig2.update_layout(
+                        title="Agent Contribution",
+                        yaxis_title="Score Gain",
                         plot_bgcolor="#ffffff",
                         paper_bgcolor="#ffffff",
                         font=dict(color="#1a1a1a"),
                         height=350
-                    )
+                )
                 st.plotly_chart(fig2, use_container_width=True)
                 top = max(contrib, key=contrib.get)
                 st.success(f"🔑 **{top}** contributes most (+{contrib[top]} pts)")
