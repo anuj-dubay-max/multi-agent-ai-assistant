@@ -27,7 +27,7 @@ st.markdown("""
 
 .stApp {
     font-family: 'Inter', sans-serif;
-    background: #ffffff !important;
+    background: #f7f7f5 !important;
     color: #111111 !important;
 }
 
