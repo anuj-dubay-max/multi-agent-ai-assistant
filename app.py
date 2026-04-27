@@ -25,42 +25,55 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* ── Fonts: target ONLY .stApp, NOT [class*="css"] ── */
+/* ── Fonts ── */
 .stApp {
     font-family: 'Inter', sans-serif;
 }
-
 code, pre, textarea, .stCode {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
 /* ── Typography ── */
-.hero-title { font-size: 2.6rem; font-weight: 800; }
-.hero-sub { opacity: 0.75; }
+.hero-title { font-size: 2.6rem; font-weight: 800; color: var(--text-color); }
+.hero-sub { opacity: 0.75; color: var(--text-color); }
 
-/* ── Cards: NO !important on background/color ── */
+/* ── Cards (Uses theme variables so it works in Light & Dark) ── */
 .finding-card,
 .stat-card {
+    background: var(--secondary-background-color);
+    color: var(--text-color);
     border: 1px solid rgba(128,128,128,0.25);
     border-radius: 12px;
     padding: 1rem;
 }
 
-/* ── Inputs: NO !important on background/color ── */
+.stat-label { 
+    font-size: 0.85rem; 
+    opacity: 0.8;
+    color: var(--text-color);
+}
+
+.stat-num { 
+    font-size: 1.8rem; 
+    font-weight: 700; 
+}
+
+/* ── Inputs ── */
 textarea, input, select,
 [data-baseweb="select"] > div,
 [data-baseweb="input"] > div {
+    background: var(--secondary-background-color);
+    color: var(--text-color);
     border: 1px solid rgba(128,128,128,0.3);
-    border-radius: 4px;
 }
 
-/* ── Button: keep primary color, drop color !important ── */
+/* ── Buttons ── */
 .stButton > button {
     border-radius: 8px !important;
     border: none !important;
 }
 
-/* ── Severity badges ── */
+/* ── Severity Badges ── */
 .sev-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -794,7 +807,7 @@ with tab1:
         if single_scores and multi_scores:
             sc1, sc2, sc3 = st.columns([5, 2, 5])
             with sc1:
-                st.markdown(f"""<div class="stat-card" style="border-color:#3a1a1a">
+                st.markdown(f"""<div class="stat-card" style="border-color:rgba(255,0,0,0.3)">
                     <div class="stat-label">Single Agent</div>
                     <div class="stat-num" style="color:#e05252">{single_scores['total']}</div>
                     <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
@@ -806,11 +819,11 @@ with tab1:
                 diff = multi_scores['total'] - single_scores['total']
                 c = "#52c478" if diff >= 0 else "#e05252"
                 s = "+" if diff >= 0 else ""
-                st.markdown(f"""<div class="stat-card" style="border-color:#2a2a2a">
-                    <div class="stat-label">Delta</div>
+                st.markdown(f"""<div class="stat-card" style="border-color:rgba(128,128,128,0.3)">                    <div class="stat-label">Delta</div>
                     <div class="stat-num" style="color:{c}">{s}{diff}</div></div>""", unsafe_allow_html=True)
             with sc3:
-                st.markdown(f"""<div class="stat-card" style="border-color:#1a3a1a">
+            with sc3:
+                st.markdown(f"""<div class="stat-card" style="border-color:rgba(0,200,0,0.3)">
                     <div class="stat-label">Multi-Agent</div>
                     <div class="stat-num" style="color:#52c478">{multi_scores['total']}</div>
                     <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
@@ -987,7 +1000,7 @@ with tab2:
             colors = ["#e05252", "#f5a623", "#e8a435", "#8bc34a", "#4caf50", "#2196f3", "#9c27b0"]
             for i, (col, (cfg, data)) in enumerate(zip(cols, res.items())):
                 with col:
-                    st.markdown(f"""<div class="stat-card" style="border-color:{colors[i%7]}44">
+                    st.markdown(f"""<div class="stat-card" style="border-color:{colors[i%7]}66">
                         <div class="stat-label">C{i+1}</div>
                         <div class="stat-num" style="color:{colors[i%7]};font-size:1.3rem">{data.get('avg_score', '?')}</div>
                         <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
