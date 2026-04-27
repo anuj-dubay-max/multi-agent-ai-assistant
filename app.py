@@ -35,6 +35,36 @@ def get_client():
         return Groq(api_key=api_key)
     except Exception:
         return None
+    
+def call_llm(client, system_prompt, user_prompt, temperature=0.3, max_tokens=1200):
+    if client is None:
+        return None
+
+    try:
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+
+        st.session_state["token_count"]["calls"] += 1
+
+        try:
+            used = resp.usage.total_tokens
+            st.session_state["token_count"]["total"] += used
+        except:
+            pass
+
+        return resp.choices[0].message.content
+
+    except Exception as e:
+        st.session_state["token_count"]["errors"] += 1
+        return f"LLM Error: {str(e)}"
+    
 
 MEMORY_FILE = "review_memory.json"
 ABLATION_CACHE = "ablation_cache.json"
@@ -131,6 +161,15 @@ code {
     color:#ffffff !important;
     background:#111827 !important;
 }
+table {
+    font-size: 18px !important;
+    width: 100% !important;
+}
+
+th, td {
+    padding: 10px !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
