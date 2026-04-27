@@ -37,41 +37,40 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 
-/* FORCE LIGHT EVERYWHERE */
-html, body, .stApp,
-[data-testid="stAppViewContainer"],
-[data-testid="stMain"],
-[data-testid="stMainBlockContainer"],
-section.main,
-.main,
-.block-container,
-div[data-testid="stVerticalBlock"] {
-    background: #ffffff !important;
-    color: #111111 !important;
-    font-family: 'Inter', sans-serif;
+html, body, .stApp, [data-testid="stAppViewContainer"]{
+    background:#ffffff !important;
+    color:#111111 !important;
+    font-family:'Inter', sans-serif;
 }
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: #f5f6f8 !important;
+/* main content wrapper only */
+[data-testid="stMainBlockContainer"]{
+    padding-top:2rem !important;
+    max-width:1200px !important;
 }
 
-[data-testid="stSidebar"] * {
-    color: #111111 !important;
+/* sidebar */
+[data-testid="stSidebar"]{
+    background:#f5f6f8 !important;
+}
+[data-testid="stSidebar"] *{
+    color:#111111 !important;
 }
 
-/* Inputs */
-textarea, input, select,
-.stTextArea textarea,
-.stSelectbox div,
-.stTextInput input {
-    background: #ffffff !important;
-    color: #111111 !important;
+/* text */
+p, label, span, div, h1, h2, h3, h4{
+    color:#111111 !important;
 }
 
-/* Buttons */
-button {
-    color: white !important;
+/* inputs */
+textarea, input, select{
+    background:#ffffff !important;
+    color:#111111 !important;
+}
+
+/* buttons */
+button{
+    border-radius:10px !important;
 }
 </style>
 """, unsafe_allow_html=True)
