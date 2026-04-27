@@ -119,21 +119,22 @@ button[data-baseweb="tab"] {
 .diff-add { background:#e8f5e9; }
 .diff-remove { background:#ffebee; }
 
-/* Force Streamlit text visible */
-.stMarkdown,
-.stText,
-.stCaption,
-.stSelectbox label,
-.stTextArea label,
-.stFileUploader label,
-label,
-small,
-p {
+/* Code block boxes */
+pre, code, .stCodeBlock, .stCode {
+    background: #f8f9fb !important;
+    color: #111111 !important;
+    border: 1px solid #dddddd !important;
+    border-radius: 10px !important;
+}
+
+div[data-testid="stMarkdownContainer"] pre {
+    background: #f8f9fb !important;
     color: #111111 !important;
 }
 
-[data-baseweb="select"] span {
+div[data-testid="stMarkdownContainer"] pre code {
     color: #111111 !important;
+    background: transparent !important;
 }
 
 </style>
