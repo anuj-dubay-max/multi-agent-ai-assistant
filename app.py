@@ -89,12 +89,39 @@ input::placeholder {
     color: #777777 !important;
 }
 
-/* Buttons */
+/* Default buttons */
 .stButton > button {
-    border-radius: 8px !important;
+    background: #2563eb !important;
+    color: #ffffff !important;
     border: none !important;
-    color: white !important;
-    font-weight: 600;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    padding: 0.55rem 1rem !important;
+    font-size: 15px !important;
+}
+
+/* Hover */
+.stButton > button:hover {
+    background: #1d4ed8 !important;
+    color: #ffffff !important;
+}
+
+/* Main Run Review button = RED */
+.stButton > button[kind="primary"] {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: #b91c1c !important;
+    color: #ffffff !important;
+}
+
+/* Disabled buttons */
+.stButton > button:disabled {
+    background: #9ca3af !important;
+    color: #ffffff !important;
+    opacity: 0.8 !important;
 }
 
 /* Tabs */
@@ -137,15 +164,6 @@ div[data-testid="stMarkdownContainer"] pre code {
     background: transparent !important;
 }
 
-/* Buttons readable */
-.stButton > button {
-    background: #111827 !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    padding: 0.5rem 1rem !important;
-}
 
 .stButton > button:hover {
     background: #1f2937 !important;
