@@ -25,7 +25,10 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-.stApp {
+.hero-sub {
+    color: #555555;html, body, [data-testid="stAppViewContainer"], .stApp {
+    background: #ffffff !important;
+    color: #111111 !important;
     font-family: 'Inter', sans-serif;
 }
 
@@ -36,7 +39,11 @@ html, body, p, label, li, h1, h2, h3, h4, h5, h6 {
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #ffffff !important;
+    background: #f5f6f8 !important;
+}
+
+section[data-testid="stSidebar"] * {
+    color: #111111 !important;
 }
 
 /* Code font */
