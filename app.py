@@ -25,119 +25,117 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* ═══ FORCE LIGHT MODE ON EVERYTHING ═══ */
-.stApp, .stApp *, section.main, section[data-testid="stSidebar"],
-section[data-testid="stSidebar"] *, [data-testid="stMain"],
-[data-testid="stMain"] *, .stMarkdown, .stText, .stCodeBlock,
-.streamlit-expanderHeader, .streamlit-expanderContent,
-.stTabs, .stTabs *, .stAlert, .stException, pre, code,
-p, span, div, li, label, h1, h2, h3, h4, h5, h6, th, td,
-input, textarea, select, button, .stSelectbox, .stFileUploader,
-[data-baseweb="textarea"], [data-baseweb="input"],
-[data-baseweb="select"], [data-baseweb="tab-list"],
-[data-baseweb="tab-list"] *, [data-baseweb="tab-panel"],
-[data-baseweb="tab-panel"] *, .plotly, .plotly *,
-.js-plotly-plot, .plot-container, svg text {
-    background-color: transparent !important;
-    color: #1a1a1a !important;
-    border-color: #ddd !important;
+/* App */
+.stApp {
+    font-family: 'Inter', sans-serif;
+    background: #ffffff;
+    color: #111111;
 }
 
-/* Solid backgrounds */
-.stApp, section.main, [data-testid="stMain"],
-.stApp > div, .stApp > div > div,
-section[data-testid="stSidebar"],
-[data-baseweb="tab-panel"], .streamlit-expanderContent,
-.js-plotly-plot, .plot-container {
-    background-color: #ffffff !important;
+/* Main text everywhere */
+html, body, p, span, label, div, li, h1, h2, h3, h4, h5, h6 {
+    color: #111111;
 }
 
-/* Sidebar slightly different */
+/* Sidebar */
 section[data-testid="stSidebar"] {
-    background-color: #f0f2f5 !important;
+    background: #f5f6f8;
+}
+section[data-testid="stSidebar"] * {
+    color: #111111 !important;
 }
 
-/* Code blocks */
-pre, code, .stCodeBlock, [data-testid="stCodeBlock"],
-[data-baseweb="textarea"], [data-baseweb="input"] {
-    background-color: #f5f5f5 !important;
+/* Code font */
+code, pre, textarea, .stCode {
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Tab bar */
-[data-baseweb="tab-list"] {
-    background-color: #f0f2f5 !important;
-}
-[data-baseweb="tab-list"] button[aria-selected="true"] {
-    background-color: #ffffff !important;
-    color: #ff4b4b !important;
-    border-bottom: 2px solid #ff4b4b !important;
+/* Titles */
+.hero-title {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #111111;
 }
 
-/* Alert boxes */
-[data-testid="stAlertInfo"] { background-color: #e3f2fd !important; border-left: 4px solid #2196F3 !important; }
-[data-testid="stAlertSuccess"] { background-color: #e8f5e9 !important; border-left: 4px solid #4CAF50 !important; }
-[data-testid="stAlertWarning"] { background-color: #fff3e0 !important; border-left: 4px solid #FF9800 !important; }
-[data-testid="stAlertError"] { background-color: #ffebee !important; border-left: 4px solid #F44336 !important; }
+.hero-sub {
+    color: #444444;
+    opacity: 1;
+    font-size: 1rem;
+}
 
-/* Buttons keep their colored background */
+/* Cards */
+.finding-card,
+.stat-card {
+    border: 1px solid #dddddd;
+    border-radius: 12px;
+    padding: 1rem;
+    background: #ffffff;
+    color: #111111;
+}
+
+/* Inputs */
+textarea, input, select,
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div {
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    background: #ffffff !important;
+    color: #111111 !important;
+}
+
+/* Placeholder */
+textarea::placeholder,
+input::placeholder {
+    color: #777777 !important;
+}
+
+/* Buttons */
 .stButton > button {
-    background-color: #ff4b4b !important;
-    color: #ffffff !important;
-}
-.stButton > button:hover {
-    background-color: #e04343 !important;
-}
-.stButton > button[kind="secondary"],
-.stButton > button[data-testid="stBaseButton-secondary"] {
-    background-color: #f0f2f5 !important;
-    color: #1a1a1a !important;
+    border-radius: 8px !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
 }
 
-/* Progress */
-.stProgress > div > div {
-    background-color: #ff4b4b !important;
+/* Tabs */
+button[data-baseweb="tab"] {
+    color: #111111 !important;
 }
 
-/* Checkbox/radio */
-.stCheckbox, .stRadio {
-    color: #1a1a1a !important;
-}
-
-/* Divider */
-.stDivider { border-color: #e0e0e0 !important; }
-
-/* ═══ YOUR CUSTOM STYLES ═══ */
-.stApp { font-family: 'Inter', sans-serif !important; }
-code, pre, textarea { font-family: 'JetBrains Mono', monospace !important; }
-
-.hero-title { font-size: 2.6rem !important; font-weight: 800 !important; }
-.hero-sub { opacity: 0.75 !important; }
-
-.finding-card, .stat-card {
-    background: #f8f9fa !important;
-    border: 1px solid rgba(0,0,0,0.1) !important;
-    border-radius: 12px !important;
-    padding: 1rem !important;
-    margin-bottom: 0.5rem !important;
-}
-
-.stat-label { font-size: 0.85rem !important; opacity: 0.8 !important; }
-.stat-num { font-size: 1.8rem !important; font-weight: 700 !important; }
-
+/* Badges */
 .sev-badge {
-    display: inline-block !important; padding: 2px 8px !important;
-    border-radius: 4px !important; font-size: 0.75rem !important;
-    font-weight: 700 !important; margin-right: 6px !important;
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:6px;
+    font-size:0.75rem;
+    font-weight:700;
+    margin-right:6px;
 }
-.sev-critical { background: rgba(220,53,69,0.12) !important; color: #dc3545 !important; }
-.sev-warning  { background: rgba(230,119,0,0.12) !important; color: #e67700 !important; }
-.sev-style    { background: rgba(37,99,235,0.12) !important; color: #2563eb !important; }
-.sev-info     { background: rgba(5,150,105,0.12) !important; color: #059669 !important; }
+.sev-critical { background:#ffe5e5; color:#c62828; }
+.sev-warning  { background:#fff4d6; color:#b26a00; }
+.sev-style    { background:#e8f0ff; color:#1e5eff; }
+.sev-info     { background:#e5f8ee; color:#0d8a4b; }
 
-.diff-add    { background: rgba(0,150,0,0.1) !important; }
-.diff-remove { background: rgba(220,0,0,0.1) !important; }
+.diff-add { background:#e8f5e9; }
+.diff-remove { background:#ffebee; }
 
-.stButton > button { border-radius: 8px !important; border: none !important; }
+/* Force Streamlit text visible */
+.stMarkdown,
+.stText,
+.stCaption,
+.stSelectbox label,
+.stTextArea label,
+.stFileUploader label,
+label,
+small,
+p {
+    color: #111111 !important;
+}
+
+[data-baseweb="select"] span {
+    color: #111111 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -855,7 +853,7 @@ with tab1:
         if single_scores and multi_scores:
             sc1, sc2, sc3 = st.columns([5, 2, 5])
             with sc1:
-                st.markdown(f"""<div class="stat-card" style="border-color:rgba(255,0,0,0.3)">
+                st.markdown(f"""<div class="stat-card" style="border-color:#3a1a1a">
                     <div class="stat-label">Single Agent</div>
                     <div class="stat-num" style="color:#e05252">{single_scores['total']}</div>
                     <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
@@ -867,11 +865,11 @@ with tab1:
                 diff = multi_scores['total'] - single_scores['total']
                 c = "#52c478" if diff >= 0 else "#e05252"
                 s = "+" if diff >= 0 else ""
-                st.markdown(f"""<div class="stat-card" style="border-color:rgba(128,128,128,0.3)">                    <div class="stat-label">Delta</div>
+                st.markdown(f"""<div class="stat-card" style="border-color:#2a2a2a">
+                    <div class="stat-label">Delta</div>
                     <div class="stat-num" style="color:{c}">{s}{diff}</div></div>""", unsafe_allow_html=True)
-            
             with sc3:
-                st.markdown(f"""<div class="stat-card" style="border-color:rgba(0,200,0,0.3)">
+                st.markdown(f"""<div class="stat-card" style="border-color:#1a3a1a">
                     <div class="stat-label">Multi-Agent</div>
                     <div class="stat-num" style="color:#52c478">{multi_scores['total']}</div>
                     <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
@@ -1048,7 +1046,7 @@ with tab2:
             colors = ["#e05252", "#f5a623", "#e8a435", "#8bc34a", "#4caf50", "#2196f3", "#9c27b0"]
             for i, (col, (cfg, data)) in enumerate(zip(cols, res.items())):
                 with col:
-                    st.markdown(f"""<div class="stat-card" style="border-color:{colors[i%7]}66">
+                    st.markdown(f"""<div class="stat-card" style="border-color:{colors[i%7]}44">
                         <div class="stat-label">C{i+1}</div>
                         <div class="stat-num" style="color:{colors[i%7]};font-size:1.3rem">{data.get('avg_score', '?')}</div>
                         <div class="stat-label">/ 25</div></div>""", unsafe_allow_html=True)
@@ -1078,11 +1076,11 @@ with tab2:
                 title="Aggregate Score",
                 yaxis=dict(range=[0, 28]),
                 template="streamlit",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="white",
+                plot_bgcolor="white",
+                font=dict(color="#111"),
                 height=400
             )
-
             st.plotly_chart(fig, use_container_width=True)
 
             # Contribution
@@ -1096,15 +1094,14 @@ with tab2:
                 fig2.add_trace(go.Bar(x=list(contrib.keys()), y=list(contrib.values()),
                     marker_color=["#4caf50" if v > 0 else "#e05252" for v in contrib.values()],
                     text=[f"+{v}" if v >= 0 else str(v) for v in contrib.values()], textposition="outside"))
-                
                 fig2.update_layout(
-                        title="Agent Contribution",
-                        yaxis_title="Score Gain",
-                        plot_bgcolor="#ffffff",
-                        paper_bgcolor="#ffffff",
-                        font=dict(color="#1a1a1a"),
-                        height=350
-                )
+                    title="Agent Contribution",
+                    yaxis_title="Delta",
+                    template="streamlit",
+                    paper_bgcolor="white",
+                    plot_bgcolor="white",
+                    font=dict(color="#111"),
+                    height=350)
                 st.plotly_chart(fig2, use_container_width=True)
                 top = max(contrib, key=contrib.get)
                 st.success(f"🔑 **{top}** contributes most (+{contrib[top]} pts)")
