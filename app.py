@@ -821,7 +821,7 @@ with tab1:
                 s = "+" if diff >= 0 else ""
                 st.markdown(f"""<div class="stat-card" style="border-color:rgba(128,128,128,0.3)">                    <div class="stat-label">Delta</div>
                     <div class="stat-num" style="color:{c}">{s}{diff}</div></div>""", unsafe_allow_html=True)
-            with sc3:
+            
             with sc3:
                 st.markdown(f"""<div class="stat-card" style="border-color:rgba(0,200,0,0.3)">
                     <div class="stat-label">Multi-Agent</div>
