@@ -27,21 +27,16 @@ st.markdown("""
 
 .stApp {
     font-family: 'Inter', sans-serif;
-    background: #f7f7f5 !important;
-    color: #111111 !important;
 }
 
 /* Main text everywhere (exclude code blocks) */
 html, body, p, label, li, h1, h2, h3, h4, h5, h6 {
-    color: #111111;
+    color: inherit;
 }
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #f5f6f8;
-}
-section[data-testid="stSidebar"] * {
-    color: #111111 !important;
+    background: transparent;
 }
 
 /* Code font */
