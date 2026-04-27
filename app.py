@@ -1072,22 +1072,50 @@ with tab3:
 
 with tab4:
     st.markdown("## How It Works")
+
     st.markdown("""
-    ### Multi-Agent Pipeline + Fix Agent
+### Multi-Agent Pipeline + Fix Agent
 
-    **Tool Agent** — AST + regex. Ground truth, no LLM.
-    **Security Reviewer** — OWASP, injection, secrets.
-    **Correctness Reviewer** — Logic bugs, edge cases.
-    **Debate Agent** — Compares Security vs Correctness.
-    **Synthesizer** — Merges, deduplicates, prioritizes.
-    **Verifier** — Checks findings against code.
-    **Fix Agent** — Rewrites code with all fixes.
+**Tool Agent** - AST + regex. Ground truth, no LLM.  
+**Security Reviewer** - OWASP, injection, secrets.  
+**Correctness Reviewer** - Logic bugs, edge cases.  
+**Debate Agent** - Compares Security vs Correctness.  
+**Synthesizer** - Merges, deduplicates, prioritizes.  
+**Verifier** - Checks findings against code.  
+**Fix Agent** - Rewrites code with all fixes.
+""")
 
-    ### Flow
-    ```
-    Code → Tool Agent → Security ──┐
-                     Correctness  ─┤
-                                   └─→ Synthesizer → Verifier → Fix
-                      
-    ```
-    """)
+    st.markdown("### Flow")
+
+    st.markdown("""
+<div style="
+background:#f8fafc;
+padding:24px;
+border-radius:14px;
+border:1px solid #d1d5db;
+font-size:18px;
+line-height:2;
+font-weight:600;
+color:#111111;">
+
+Input Code<br>
+↓<br>
+Tool Agent<br>
+↓<br>
+├─ Security Reviewer<br>
+└─ Correctness Reviewer<br>
+↓<br>
+Debate Agent<br>
+↓<br>
+Synthesizer<br>
+↓<br>
+Verifier<br>
+↓<br>
+Fix Agent<br>
+↓<br>
+Reviewed / Corrected Code
+
+</div>
+""", unsafe_allow_html=True)
+
+    st.caption("Figure 1. Multi-agent code review workflow.")
