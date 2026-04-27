@@ -25,69 +25,60 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-html, body, [class*="css"] {
+/* ── Fonts: target ONLY .stApp, NOT [class*="css"] ── */
+.stApp {
     font-family: 'Inter', sans-serif;
 }
 
-code, pre, textarea {
+code, pre, textarea, .stCode {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
+/* ── Typography ── */
+.hero-title { font-size: 2.6rem; font-weight: 800; }
+.hero-sub { opacity: 0.75; }
 
-code, pre, textarea {
-    font-family: 'JetBrains Mono', monospace !important;
-}
-
-/* Keep theme-controlled colors */
-.hero-title {font-size:2.6rem;font-weight:800;}
-.hero-sub {opacity:0.75;}
-
+/* ── Cards: NO !important on background/color ── */
 .finding-card,
 .stat-card {
-    border:1px solid rgba(128,128,128,0.25);
-    border-radius:12px;
-    padding:1rem;
-}
-
-
-/* INPUTS */
-textarea,
-input,
-select,
-[data-baseweb="select"] > div,
-[data-baseweb="input"] > div {
-    background: #ffffff !important;
-    color: #111111 !important;
-    border: 1px solid #d0d7de !important;
-}
-
-/* BUTTONS */
-.stButton > button {
-    background: #ff4b4b !important;
-    color: white !important;
-    border-radius: 8px !important;
-    border: none !important;
-}
-
-/* CARDS */
-.finding-card,
-.stat-card {
-    background: #ffffff !important;
-    color: #111111 !important;
-    border: 1px solid #dddddd !important;
+    border: 1px solid rgba(128,128,128,0.25);
     border-radius: 12px;
     padding: 1rem;
 }
 
-.hero-title {font-size:2.6rem;font-weight:800;}
-.hero-sub {color:#555 !important;}
+/* ── Inputs: NO !important on background/color ── */
+textarea, input, select,
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div {
+    border: 1px solid rgba(128,128,128,0.3);
+    border-radius: 4px;
+}
 
+/* ── Button: keep primary color, drop color !important ── */
+.stButton > button {
+    border-radius: 8px !important;
+    border: none !important;
+}
+
+/* ── Severity badges ── */
+.sev-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-right: 6px;
+}
+.sev-critical { background: rgba(255,68,68,0.15); color: #ff4444; }
+.sev-warning  { background: rgba(255,170,0,0.15); color: #ffaa00; }
+.sev-style    { background: rgba(68,136,255,0.15); color: #4488ff; }
+.sev-info     { background: rgba(68,187,136,0.15); color: #44bb88; }
+
+/* ── Diff ── */
+.diff-add    { background: rgba(0,180,0,0.15); }
+.diff-remove { background: rgba(255,0,0,0.15); }
 </style>
 """, unsafe_allow_html=True)
-
 
 
 # ══════════════════════════════════════════════════════════════
