@@ -22,7 +22,6 @@ load_dotenv()
 st.set_page_config(page_title="Multi-Agent Code Review", page_icon="🔍", layout="wide")
 
 st.markdown("""
-st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 
