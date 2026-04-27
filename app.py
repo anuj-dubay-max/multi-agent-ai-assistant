@@ -22,90 +22,49 @@ load_dotenv()
 st.set_page_config(page_title="Multi-Agent Code Review", page_icon="🔍", layout="wide")
 
 st.markdown("""
+st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
 
-html, body, .stApp, [data-testid="stAppViewContainer"], 
-[data-testid="stHeader"], [data-testid="stMain"] {
+/* FORCE LIGHT EVERYWHERE */
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+section.main,
+.main,
+.block-container,
+div[data-testid="stVerticalBlock"] {
     background: #ffffff !important;
     color: #111111 !important;
     font-family: 'Inter', sans-serif;
 }
 
 /* Sidebar */
-section[data-testid="stSidebar"] {
+[data-testid="stSidebar"] {
     background: #f5f6f8 !important;
 }
 
-section[data-testid="stSidebar"] * {
+[data-testid="stSidebar"] * {
     color: #111111 !important;
 }
 
-[data-testid="stVerticalBlock"],
-[data-testid="stMarkdownContainer"],
-section.main {
-    background:#ffffff !important;
+/* Inputs */
+textarea, input, select,
+.stTextArea textarea,
+.stSelectbox div,
+.stTextInput input {
+    background: #ffffff !important;
+    color: #111111 !important;
 }
 
+/* Buttons */
+button {
+    color: white !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-
-# ══════════════════════════════════════════════════════════════
-# CONFIG
-# ══════════════════════════════════════════════════════════════
-
-MODEL = "llama-3.1-8b-instant"
-MEMORY_FILE = "review_memory.json"
-ABLATION_CACHE = "ablation_results.json"
-
-if "token_count" not in st.session_state:
-    st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
-if "fixed_code" not in st.session_state:
-    st.session_state["fixed_code"] = ""
-
-def get_client():
-    try:
-        api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY", "") or st.session_state.get("groq_api_key", "")
-    except Exception:
-        api_key = os.getenv("GROQ_API_KEY") or st.session_state.get("groq_api_key", "")
-    if not api_key:
-        return None
-    return Groq(api_key=api_key)
-
-def call_llm(client, system_prompt, user_message, temperature=0.2, max_tokens=700):
-    max_retries = 4
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message},
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            content = response.choices[0].message.content
-            if hasattr(response, 'usage') and response.usage:
-                st.session_state["token_count"]["total"] += getattr(response.usage, 'total_tokens', 0)
-
-            st.session_state["token_count"]["calls"] += 1
-            st.session_state["token_count"]["errors"] = 0
-            return content
-        except Exception as e:
-            err_str = str(e)
-            st.session_state["token_count"]["errors"] += 1
-            if any(code in err_str for code in ["429", "503", "rate_limit", "Rate limit"]):
-                wait = min((attempt + 1) * 12, 60)
-                if attempt < max_retries - 1:
-                    time.sleep(wait)
-                    continue
-                else:
-                    return None
-            else:
-                return None
-    return None
 
 # ══════════════════════════════════════════════════════════════
 # STATIC ANALYSIS
