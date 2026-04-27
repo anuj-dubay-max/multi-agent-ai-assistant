@@ -58,8 +58,18 @@ html, body, .stApp, [data-testid="stAppViewContainer"]{
 }
 
 /* text */
-p, label, span, div, h1, h2, h3, h4{
+p, label, span{
     color:#111111 !important;
+}
+
+h1,h2,h3,h4{
+    color:#111111 !important;
+}
+
+[data-testid="stTabs"] button{
+    padding:0.75rem 1rem !important;
+    min-height:48px !important;
+    white-space:nowrap !important;
 }
 
 /* inputs */
@@ -71,6 +81,40 @@ textarea, input, select{
 /* buttons */
 button{
     border-radius:10px !important;
+}
+/* Better tab/content sizing */
+h1 {font-size: 2.4rem !important;}
+h2 {font-size: 2rem !important;}
+h3 {font-size: 1.6rem !important;}
+p, li, div {font-size: 1.05rem !important;}
+
+/* Tabs bigger */
+button[data-baseweb="tab"]{
+    font-size:1rem !important;
+    font-weight:600 !important;
+}
+
+/* Fix methodology / tab page text */
+[data-testid="stMarkdownContainer"]{
+    font-size:1.05rem !important;
+}
+
+/* Flow code block visible */
+pre {
+    background:#111827 !important;
+    color:#ffffff !important;
+}
+
+code {
+    background:transparent !important;
+    color:#ffffff !important;
+}
+
+/* Also for markdown code blocks */
+[data-testid="stMarkdownContainer"] pre,
+[data-testid="stMarkdownContainer"] code{
+    color:#ffffff !important;
+    background:#111827 !important;
 }
 </style>
 """, unsafe_allow_html=True)
