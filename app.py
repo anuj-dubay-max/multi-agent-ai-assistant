@@ -25,188 +25,122 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
-/* ════════════════ FORCE LIGHT EVERYWHERE ════════════════ */
-
-/* Main app background */
-.stApp,
-.stApp > div,
-.stApp > div > div,
-section.main,
-div[data-testid="stMain"] {
-    background-color: #ffffff !important;
+/* ═══ FORCE LIGHT MODE ON EVERYTHING ═══ */
+.stApp, .stApp *, section.main, section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] *, [data-testid="stMain"],
+[data-testid="stMain"] *, .stMarkdown, .stText, .stCodeBlock,
+.streamlit-expanderHeader, .streamlit-expanderContent,
+.stTabs, .stTabs *, .stAlert, .stException, pre, code,
+p, span, div, li, label, h1, h2, h3, h4, h5, h6, th, td,
+input, textarea, select, button, .stSelectbox, .stFileUploader,
+[data-baseweb="textarea"], [data-baseweb="input"],
+[data-baseweb="select"], [data-baseweb="tab-list"],
+[data-baseweb="tab-list"] *, [data-baseweb="tab-panel"],
+[data-baseweb="tab-panel"] *, .plotly, .plotly *,
+.js-plotly-plot, .plot-container, svg text {
+    background-color: transparent !important;
     color: #1a1a1a !important;
+    border-color: #ddd !important;
 }
 
-/* Sidebar */
+/* Solid backgrounds */
+.stApp, section.main, [data-testid="stMain"],
+.stApp > div, .stApp > div > div,
 section[data-testid="stSidebar"],
-section[data-testid="stSidebar"] > div,
-section[data-testid="stSidebar"] div,
-[data-testid="stSidebar"] {
-    background-color: #f0f2f5 !important;
-}
-section[data-testid="stSidebar"] * {
-    color: #1a1a1a !important;
+[data-baseweb="tab-panel"], .streamlit-expanderContent,
+.js-plotly-plot, .plot-container {
+    background-color: #ffffff !important;
 }
 
-/* All text */
-p, span, div, li, td, th, label, h1, h2, h3, h4, h5, h6,
-.stMarkdown, .stText, .stCaption, .stHeading {
-    color: #1a1a1a !important;
+/* Sidebar slightly different */
+section[data-testid="stSidebar"] {
+    background-color: #f0f2f5 !important;
 }
 
 /* Code blocks */
-pre, code, [data-testid="stCodeBlock"],
-.stCode, .stCodeBlock {
+pre, code, .stCodeBlock, [data-testid="stCodeBlock"],
+[data-baseweb="textarea"], [data-baseweb="input"] {
     background-color: #f5f5f5 !important;
-    color: #1a1a1a !important;
-    border: 1px solid #ddd !important;
 }
 
-/* Text areas and inputs */
-.stTextArea textarea,
-.stTextInput input,
-.stSelectbox select,
-.stFileUploader,
-[data-baseweb="textarea"],
-[data-baseweb="input"],
-[data-baseweb="select"] {
-    background-color: #ffffff !important;
-    color: #1a1a1a !important;
-    border-color: #ccc !important;
-}
-
-/* Buttons */
-.stButton > button,
-.kgDCAk,
-.j9ecNz {
-    color: #ffffff !important;
-}
-
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] {
+/* Tab bar */
+[data-baseweb="tab-list"] {
     background-color: #f0f2f5 !important;
 }
-.stTabs [data-baseweb="tab-list"] button {
-    color: #555 !important;
-    background-color: transparent !important;
-}
-.stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-    color: #ff4b4b !important;
+[data-baseweb="tab-list"] button[aria-selected="true"] {
     background-color: #ffffff !important;
+    color: #ff4b4b !important;
     border-bottom: 2px solid #ff4b4b !important;
 }
-.stTabs [data-baseweb="tab-panel"] {
-    background-color: #ffffff !important;
+
+/* Alert boxes */
+[data-testid="stAlertInfo"] { background-color: #e3f2fd !important; border-left: 4px solid #2196F3 !important; }
+[data-testid="stAlertSuccess"] { background-color: #e8f5e9 !important; border-left: 4px solid #4CAF50 !important; }
+[data-testid="stAlertWarning"] { background-color: #fff3e0 !important; border-left: 4px solid #FF9800 !important; }
+[data-testid="stAlertError"] { background-color: #ffebee !important; border-left: 4px solid #F44336 !important; }
+
+/* Buttons keep their colored background */
+.stButton > button {
+    background-color: #ff4b4b !important;
+    color: #ffffff !important;
+}
+.stButton > button:hover {
+    background-color: #e04343 !important;
+}
+.stButton > button[kind="secondary"],
+.stButton > button[data-testid="stBaseButton-secondary"] {
+    background-color: #f0f2f5 !important;
     color: #1a1a1a !important;
 }
 
-/* Checkboxes and radio */
-.stCheckbox label, .stRadio label {
-    color: #1a1a1a !important;
-}
-
-/* Progress bar */
+/* Progress */
 .stProgress > div > div {
     background-color: #ff4b4b !important;
 }
 
-/* Info/Success/Error/Warning boxes */
-.stAlert, .stException {
+/* Checkbox/radio */
+.stCheckbox, .stRadio {
     color: #1a1a1a !important;
-}
-[data-testid="stAlert"] {
-    background-color: #f8f9fa !important;
-    color: #1a1a1a !important;
-}
-[data-testid="stAlertInfo"] { border-left: 4px solid #2196F3 !important; }
-[data-testid="stAlertSuccess"] { border-left: 4px solid #4CAF50 !important; }
-[data-testid="stAlertWarning"] { border-left: 4px solid #FF9800 !important; }
-[data-testid="stAlertError"] { border-left: 4px solid #F44336 !important; }
-
-/* Spinner */
-.stSpinner > div {
-    border-top-color: #ff4b4b !important;
-}
-
-/* Expander */
-.streamlit-expanderHeader {
-    color: #1a1a1a !important;
-    background-color: #f8f9fa !important;
-}
-.streamlit-expanderContent {
-    background-color: #ffffff !important;
 }
 
 /* Divider */
-.hr-dash-line, .stDivider {
-    border-color: #ddd !important;
-}
+.stDivider { border-color: #e0e0e0 !important; }
 
-/* Plotly charts - force white background */
-.js-plotly-plot, .plotly, .plot-container {
-    background-color: #ffffff !important;
-}
-
-/* ════════════════ YOUR CUSTOM STYLES ════════════════ */
-
-/* Fonts */
+/* ═══ YOUR CUSTOM STYLES ═══ */
 .stApp { font-family: 'Inter', sans-serif !important; }
-code, pre, textarea, .stCode {
-    font-family: 'JetBrains Mono', monospace !important;
-}
+code, pre, textarea { font-family: 'JetBrains Mono', monospace !important; }
 
-/* Hero */
-.hero-title { font-size: 2.6rem !important; font-weight: 800 !important; color: #1a1a1a !important; }
-.hero-sub { opacity: 0.75 !important; color: #555 !important; }
+.hero-title { font-size: 2.6rem !important; font-weight: 800 !important; }
+.hero-sub { opacity: 0.75 !important; }
 
-/* Cards */
-.finding-card,
-.stat-card {
+.finding-card, .stat-card {
     background: #f8f9fa !important;
-    color: #1a1a1a !important;
     border: 1px solid rgba(0,0,0,0.1) !important;
     border-radius: 12px !important;
     padding: 1rem !important;
     margin-bottom: 0.5rem !important;
 }
 
-.stat-label {
-    font-size: 0.85rem !important;
-    opacity: 0.8 !important;
-    color: #555 !important;
-}
+.stat-label { font-size: 0.85rem !important; opacity: 0.8 !important; }
+.stat-num { font-size: 1.8rem !important; font-weight: 700 !important; }
 
-.stat-num {
-    font-size: 1.8rem !important;
-    font-weight: 700 !important;
-    color: #1a1a1a !important;
-}
-
-/* Severity badges */
 .sev-badge {
-    display: inline-block !important;
-    padding: 2px 8px !important;
-    border-radius: 4px !important;
-    font-size: 0.75rem !important;
-    font-weight: 700 !important;
-    margin-right: 6px !important;
+    display: inline-block !important; padding: 2px 8px !important;
+    border-radius: 4px !important; font-size: 0.75rem !important;
+    font-weight: 700 !important; margin-right: 6px !important;
 }
-.sev-critical { background: rgba(255,68,68,0.12) !important; color: #dc3545 !important; }
-.sev-warning  { background: rgba(255,170,0,0.12) !important; color: #e67700 !important; }
-.sev-style    { background: rgba(68,136,255,0.12) !important; color: #2563eb !important; }
-.sev-info     { background: rgba(68,187,136,0.12) !important; color: #059669 !important; }
+.sev-critical { background: rgba(220,53,69,0.12) !important; color: #dc3545 !important; }
+.sev-warning  { background: rgba(230,119,0,0.12) !important; color: #e67700 !important; }
+.sev-style    { background: rgba(37,99,235,0.12) !important; color: #2563eb !important; }
+.sev-info     { background: rgba(5,150,105,0.12) !important; color: #059669 !important; }
 
-/* Diff */
-.diff-add    { background: rgba(0,150,0,0.1) !important; color: #166534 !important; }
-.diff-remove { background: rgba(220,0,0,0.1) !important; color: #991b1b !important; }
+.diff-add    { background: rgba(0,150,0,0.1) !important; }
+.diff-remove { background: rgba(220,0,0,0.1) !important; }
 
-/* Buttons rounded */
-.stButton > button {
-    border-radius: 8px !important;
-    border: none !important;
-}
+.stButton > button { border-radius: 8px !important; border: none !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════════════════════
 # CONFIG
@@ -1162,14 +1096,16 @@ with tab2:
                 fig2.add_trace(go.Bar(x=list(contrib.keys()), y=list(contrib.values()),
                     marker_color=["#4caf50" if v > 0 else "#e05252" for v in contrib.values()],
                     text=[f"+{v}" if v >= 0 else str(v) for v in contrib.values()], textposition="outside"))
-                fig2.update_layout(
-                    title="Agent Contribution",
-                    yaxis_title="Delta",
-                    template="streamlit",
-                    paper_bgcolor="white",
-                    plot_bgcolor="white",
-                    font=dict(color="#111"),
-                    height=350)
+                
+                fig.update_layout(
+                        barmode='group',
+                        title="Findings by Severity",
+                        yaxis_title="Count",
+                        plot_bgcolor="#ffffff",
+                        paper_bgcolor="#ffffff",
+                        font=dict(color="#1a1a1a"),
+                        height=350
+                    )
                 st.plotly_chart(fig2, use_container_width=True)
                 top = max(contrib, key=contrib.get)
                 st.success(f"🔑 **{top}** contributes most (+{contrib[top]} pts)")
