@@ -137,6 +137,33 @@ div[data-testid="stMarkdownContainer"] pre code {
     background: transparent !important;
 }
 
+/* Buttons readable */
+.stButton > button {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.stButton > button:hover {
+    background: #1f2937 !important;
+    color: #ffffff !important;
+}
+
+/* File uploader button */
+section[data-testid="stFileUploader"] button {
+    background: #111827 !important;
+    color: #ffffff !important;
+}
+
+/* Metrics / labels */
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"] {
+    color: #111111 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
