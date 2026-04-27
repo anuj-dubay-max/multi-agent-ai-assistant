@@ -149,7 +149,7 @@ def correctness_reviewer(client, code, tool_findings):
         for f in tool_findings if f['type'] in ('bug_risk', 'complexity', 'syntax'))
     return call_llm(client,
         """You are a Correctness Reviewer. Find logic bugs, type errors, edge cases.
-For each: line number, severity, what's wrong, fix with code.
+For each: line number, severity, what is wrong, fix with code.
 Do NOT hallucinate. Return numbered list.""",
         f"Code:\n```\n{code}\n```\nScanner found:\n{tool_summary if tool_summary else 'None'}\n\nCorrectness review:")
 
