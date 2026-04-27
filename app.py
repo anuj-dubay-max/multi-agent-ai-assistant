@@ -1030,9 +1030,9 @@ with tab2:
                 title="Aggregate Score",
                 yaxis=dict(range=[0, 28]),
                 template="streamlit",
-                paper_bgcolor="white",
-                plot_bgcolor="white",
-                font=dict(color="#111"),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                template="streamlit",
                 height=400
             )
             st.plotly_chart(fig, use_container_width=True)
