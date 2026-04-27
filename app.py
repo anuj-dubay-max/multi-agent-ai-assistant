@@ -33,7 +33,7 @@ st.markdown("""
 }
 
 /* Main text everywhere (exclude code blocks) */
-html, body, p, label, div, li, h1, h2, h3, h4, h5, h6 {
+html, body, p, label, li, h1, h2, h3, h4, h5, h6 {
     color: #111111;
 }
 
@@ -46,7 +46,11 @@ section[data-testid="stSidebar"] * {
 }
 
 /* Code font */
-code, pre, textarea, .stCode {
+code, pre, .stCode {
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+textarea {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
@@ -147,11 +151,16 @@ button[data-baseweb="tab"] {
 .diff-remove { background:#ffebee; }
 
 /* Code block boxes */
-pre, code, .stCodeBlock, .stCode {
+pre, .stCodeBlock, .stCode {
     background: #f8f9fb !important;
     color: #111111 !important;
     border: 1px solid #dddddd !important;
     border-radius: 10px !important;
+}
+
+code {
+    color: inherit !important;
+    background: transparent !important;
 }
 
 div[data-testid="stMarkdownContainer"] pre {
