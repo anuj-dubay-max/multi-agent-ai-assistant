@@ -17,7 +17,12 @@ from groq import Groq
 from dotenv import load_dotenv
 import plotly.graph_objects as go
 
+
+
 load_dotenv()
+
+MEMORY_FILE = "review_memory.json"
+ABLATION_CACHE = "ablation_cache.json"
 
 st.set_page_config(page_title="Multi-Agent Code Review", page_icon="🔍", layout="wide")
 
