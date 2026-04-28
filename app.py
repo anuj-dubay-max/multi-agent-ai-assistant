@@ -164,15 +164,10 @@ button[kind="secondary"] {
     background-color: #f8f9fa !important;
     color: #111111 !important;
 }
-/* File uploader dark bg */
-[data-testid="stFileUploadDropzone"] {
-    background-color: #f8f9fa !important;
-    border: 2px dashed #cccccc !important;
-}
-
-/* Code textarea dark bg */
-.stTextArea textarea {
-    background-color: #f8f9fa !important;
+/* File uploader text visibility */
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] p {
     color: #111111 !important;
 }
 </style>
