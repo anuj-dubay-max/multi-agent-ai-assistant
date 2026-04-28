@@ -882,8 +882,13 @@ with tab1:
             y=[mf.get(c, 0) for c in cats],
             marker_color=['#ff6666', '#ffcc44', '#6699ff', '#66ddaa']))
         fig.update_layout(barmode='group', title="Findings by Severity",
-            yaxis_title="Count", plot_bgcolor="#ffffff", paper_bgcolor="#ffffff",
-            template="plotly_white", height=350)
+            yaxis_title="Count",
+            plot_bgcolor="#1a1a1a", paper_bgcolor="#0e0e0e",
+            font=dict(color="#e0e0e0"),
+            xaxis=dict(gridcolor="#333", tickfont=dict(color="#ccc")),
+            yaxis=dict(gridcolor="#333", tickfont=dict(color="#ccc")),
+            legend=dict(bgcolor="#1a1a1a", font=dict(color="#e0e0e0")),
+            template="plotly_dark", height=350)
         st.plotly_chart(fig, use_container_width=True)
 
         # Reviews
@@ -1033,11 +1038,12 @@ with tab2:
                 error_y=dict(type='data', array=[agg[c]["std"] for c in cfgs], visible=True)))
             fig.update_layout(
                 title="Aggregate Score",
-                yaxis=dict(range=[0, 28]),
-                template="plotly_white",
-                paper_bgcolor="white",
-                plot_bgcolor="white",
-                font=dict(color="#111"),
+                yaxis=dict(range=[0, 28], gridcolor="#333", tickfont=dict(color="#ccc")),
+                xaxis=dict(tickfont=dict(color="#ccc")),
+                template="plotly_dark",
+                paper_bgcolor="#0e0e0e",
+                plot_bgcolor="#1a1a1a",
+                font=dict(color="#e0e0e0"),
                 height=400
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -1056,10 +1062,12 @@ with tab2:
                 fig2.update_layout(
                     title="Agent Contribution",
                     yaxis_title="Delta",
-                    template="plotly_white",
-                    paper_bgcolor="white",
-                    plot_bgcolor="white",
-                    font=dict(color="#111"),
+                    yaxis=dict(gridcolor="#333", tickfont=dict(color="#ccc")),
+                    xaxis=dict(tickfont=dict(color="#ccc")),
+                    template="plotly_dark",
+                    paper_bgcolor="#0e0e0e",
+                    plot_bgcolor="#1a1a1a",
+                    font=dict(color="#e0e0e0"),
                     height=350)
                 st.plotly_chart(fig2, use_container_width=True)
                 top = max(contrib, key=contrib.get)
