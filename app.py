@@ -632,10 +632,6 @@ with st.sidebar:
     use_judge = st.checkbox("Judge (Optional)", value=True)
 
     st.divider()
-    st.markdown("### 🎨 Theme")
-    dark_mode = st.toggle("Dark Mode", value=True)
-
-    st.divider()
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
     st.markdown("### 📊 Stats")
     st.caption(f"Calls: {tc['calls']} | Errors: {tc['errors']} | Tokens: {tc['total']:,}")
@@ -665,32 +661,6 @@ with st.sidebar:
             st.markdown(f"**`{r['code_hash']}`** S:{r['single_score']}/25 M:{r['multi_score']}/25")
     else:
         st.caption("No reviews yet.")
-
-# ══════════════════════════════════════════════════════════════
-# CHART THEME HELPER  ← NEW
-# ══════════════════════════════════════════════════════════════
-
-def chart_theme(dark):
-    if dark:
-        return dict(
-            template="plotly_dark",
-            paper_bgcolor="#0e0e0e",
-            plot_bgcolor="#1a1a1a",
-            font=dict(color="#e0e0e0"),
-            xaxis=dict(gridcolor="#2a2a2a", tickfont=dict(color="#aaa")),
-            yaxis=dict(gridcolor="#2a2a2a", tickfont=dict(color="#aaa")),
-            legend=dict(bgcolor="#1a1a1a", font=dict(color="#e0e0e0")),
-        )
-    else:
-        return dict(
-            template="plotly_white",
-            paper_bgcolor="#ffffff",
-            plot_bgcolor="#f8f9fa",
-            font=dict(color="#111111"),
-            xaxis=dict(gridcolor="#e0e0e0", tickfont=dict(color="#444")),
-            yaxis=dict(gridcolor="#e0e0e0", tickfont=dict(color="#444")),
-            legend=dict(bgcolor="#ffffff", font=dict(color="#111111")),
-        )
 
 # ══════════════════════════════════════════════════════════════
 # MAIN TABS
@@ -736,6 +706,7 @@ with tab1:
         if not code_input.strip():
             st.error("Paste code first.")
         else:
+            # Emergency stop
             if st.session_state["token_count"]["errors"] > 8:
                 st.error("Too many recent errors. Wait 60 seconds, then click Clear Results.")
                 st.stop()
@@ -745,8 +716,10 @@ with tab1:
                 st.error("API key not found.")
             else:
                 st.session_state["token_count"] = {"total": 0, "calls": 0, "errors": 0}
+                # Clear previous results ONLY when new run starts
                 for k in ["review_results", "fixed_code", "last_review", "last_code"]:
                     st.session_state.pop(k, None)
+
 
                 code_input = code_input[:6000]
                 start_time = time.time()
@@ -755,21 +728,25 @@ with tab1:
                 progress = st.progress(0)
                 status = st.empty()
 
+                # Step 1: Tool Agent (no LLM)
                 status.info("🔧 Step 1/5: Tool Agent (instant)...")
                 tool_findings = tool_agent(code_input)
                 progress.progress(20)
 
+                # Step 2: Security (LLM call 1)
                 status.info("🛡️ Step 2/5: Security Reviewer...")
                 API_DELAY = 5
                 sec_review = security_reviewer(client, code_input, tool_findings) or ""
                 time.sleep(API_DELAY)
                 progress.progress(40)
 
+                # Step 3: Correctness (LLM call 2)
                 status.info("🐛 Step 3/5: Correctness Reviewer...")
                 corr_review = correctness_reviewer(client, code_input, tool_findings) or ""
                 time.sleep(API_DELAY)
                 progress.progress(60)
 
+                # Step 4: Synthesize (LLM call 3)
                 status.info("📝 Step 4/5: Synthesizing...")
                 final_review = ""
                 if sec_review or corr_review:
@@ -782,12 +759,14 @@ with tab1:
                 progress.progress(80)
                 time.sleep(API_DELAY)
 
+                # Step 5: Single baseline (LLM call 4)
                 status.info("👤 Step 5/5: Single agent baseline...")
                 single_out = single_agent_review(client, code_input) or "Rate limited."
                 progress.progress(100)
                 elapsed = round(time.time() - start_time, 1)
                 status.success(f"Done! ({elapsed}s)")
 
+                # Save everything
                 st.session_state["review_results"] = {
                     "final_review": final_review,
                     "single_out": single_out,
@@ -803,7 +782,7 @@ with tab1:
                 st.session_state["last_code"] = code_input
                 st.session_state["fixed_code"] = ""
 
-    # ── DISPLAY RESULTS ──────────────────────────────────────
+    # ── DISPLAY RESULTS (always runs, survives tab switches) ──
     R = st.session_state.get("review_results")
 
     if R:
@@ -819,6 +798,7 @@ with tab1:
 
         st.divider()
 
+        # Tool findings
         if tool_findings:
             st.markdown(f"**Tool Agent: {len(tool_findings)} issues**")
             for f in tool_findings:
@@ -826,6 +806,7 @@ with tab1:
                     <span class="sev-badge sev-{f['severity']}">{f['severity']}</span>
                     <strong>{f['location']}</strong> — {f['message']}</div>""", unsafe_allow_html=True)
 
+        # Score comparison
         st.markdown("### 📊 Score Comparison")
 
         if single_scores and multi_scores:
@@ -861,14 +842,19 @@ with tab1:
 
             if st.button("📊 Evaluate with Judge", type="secondary"):
                 client = get_client()
+
                 if client:
                     with st.spinner("Judging single agent..."):
                         sj = llm_as_judge(client, code_used, single_out)
+
                     time.sleep(3)
+
                     with st.spinner("Judging multi-agent..."):
                         mj = llm_as_judge(client, code_used, final_review)
+
                     ss = parse_judge_score(sj)
                     ms = parse_judge_score(mj)
+
                     if ss and ms:
                         R["single_scores"] = ss
                         R["multi_scores"] = ms
@@ -877,10 +863,12 @@ with tab1:
                         st.rerun()
                     else:
                         st.error("Judge failed. Wait 30s and try again.")
+
                 else:
                     st.error("API key not found.")
-
-        # Finding counts chart
+                    
+                    
+        # Finding counts
         st.divider()
         st.markdown("### 📈 Finding Counts")
         sf = count_findings(single_out)
@@ -893,11 +881,17 @@ with tab1:
         fig.add_trace(go.Bar(name='Multi-Agent', x=[c.title() for c in cats],
             y=[mf.get(c, 0) for c in cats],
             marker_color=['#ff6666', '#ffcc44', '#6699ff', '#66ddaa']))
-        ct = chart_theme(dark_mode)
         fig.update_layout(barmode='group', title="Findings by Severity",
-            yaxis_title="Count", height=350, **ct)
+            yaxis_title="Count",
+            plot_bgcolor="#1a1a1a", paper_bgcolor="#0e0e0e",
+            font=dict(color="#e0e0e0"),
+            xaxis=dict(gridcolor="#333", tickfont=dict(color="#ccc")),
+            yaxis=dict(gridcolor="#333", tickfont=dict(color="#ccc")),
+            legend=dict(bgcolor="#1a1a1a", font=dict(color="#e0e0e0")),
+            template="plotly_dark", height=350)
         st.plotly_chart(fig, use_container_width=True)
 
+        # Reviews
         st.divider()
         st.markdown("### 📝 Full Reviews")
         t1, t2, t3, t4 = st.tabs(["🏆 Multi-Agent", "🛡️ Security", "🐛 Correctness", "👤 Single Agent"])
@@ -906,12 +900,14 @@ with tab1:
         with t3: st.markdown(corr_review)
         with t4: st.markdown(single_out)
 
+        # Copy
         st.divider()
         st.markdown("### 📋 Copy for Paper")
         st.text_area("Multi-Agent", value=final_review, height=120, key="copy_m")
         st.text_area("Single Agent", value=single_out, height=120, key="copy_s")
         st.text_area("Original Code", value=code_used, height=120, key="copy_c")
 
+    # Auto-fix
     if st.session_state.get("last_review"):
         st.divider()
         st.markdown("### 🔧 Auto-Fix")
@@ -938,7 +934,8 @@ with tab1:
 
 with tab2:
     st.markdown('<p class="hero-title">Ablation Study</p>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-sub">7 configs × 3 samples — uses cached results</p>', unsafe_allow_html=True)
+    st.markdown('<p class="hero-sub">7 configs × 3 samples — uses cached results</p>',unsafe_allow_html=True
+)
 
     st.markdown("""
     | Config | Agents | Calls |
@@ -991,6 +988,7 @@ with tab2:
             ph.success("Done!")
             st.session_state["ablation_results"] = all_res
 
+    # Display
     all_res = st.session_state.get("ablation_results")
     if all_res is None and os.path.exists(ABLATION_CACHE):
         try:
@@ -1032,27 +1030,25 @@ with tab2:
                 rows.append(f"| {sn} | " + " | ".join(f"{agg[c]['per_sample'].get(sn, '—')}" for c in cfgs) + " |")
             st.markdown(header + "\n" + sep + "\n" + row1 + "\n" + row2 + "\n" + "\n".join(rows))
 
-            # Aggregate chart
-            ct = chart_theme(dark_mode)
+            # Chart
             fig = go.Figure()
             fig.add_trace(go.Bar(x=[f"C{i+1}" for i in range(len(cfgs))],
                 y=[agg[c]["mean"] for c in cfgs], marker_color=colors[:len(cfgs)],
                 text=[f"{agg[c]['mean']}±{agg[c]['std']}" for c in cfgs], textposition="outside",
                 error_y=dict(type='data', array=[agg[c]["std"] for c in cfgs], visible=True)))
-            fig.update_layout(title="Aggregate Score",
-                yaxis=dict(range=[0, 28], gridcolor=ct["xaxis"]["gridcolor"],
-                           tickfont=dict(color=ct["yaxis"]["tickfont"]["color"])),
-                xaxis=dict(tickfont=dict(color=ct["xaxis"]["tickfont"]["color"])),
-                height=400,
-                template=ct["template"],
-                paper_bgcolor=ct["paper_bgcolor"],
-                plot_bgcolor=ct["plot_bgcolor"],
-                font=ct["font"],
-                legend=ct["legend"],
+            fig.update_layout(
+                title="Aggregate Score",
+                yaxis=dict(range=[0, 28], gridcolor="#333", tickfont=dict(color="#ccc")),
+                xaxis=dict(tickfont=dict(color="#ccc")),
+                template="plotly_dark",
+                paper_bgcolor="#0e0e0e",
+                plot_bgcolor="#1a1a1a",
+                font=dict(color="#e0e0e0"),
+                height=400
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Contribution chart
+            # Contribution
             contrib = {}
             for label, hi, lo in [("Tool", 1, 0), ("Security", 2, 1), ("Correctness", 3, 2),
                                     ("Synthesizer", 4, 3), ("Debate", 5, 4), ("Verification", 6, 5)]:
@@ -1063,20 +1059,21 @@ with tab2:
                 fig2.add_trace(go.Bar(x=list(contrib.keys()), y=list(contrib.values()),
                     marker_color=["#4caf50" if v > 0 else "#e05252" for v in contrib.values()],
                     text=[f"+{v}" if v >= 0 else str(v) for v in contrib.values()], textposition="outside"))
-                fig2.update_layout(title="Agent Contribution", yaxis_title="Delta",
-                    yaxis=dict(gridcolor=ct["xaxis"]["gridcolor"],
-                               tickfont=dict(color=ct["yaxis"]["tickfont"]["color"])),
-                    xaxis=dict(tickfont=dict(color=ct["xaxis"]["tickfont"]["color"])),
-                    height=350,
-                    template=ct["template"],
-                    paper_bgcolor=ct["paper_bgcolor"],
-                    plot_bgcolor=ct["plot_bgcolor"],
-                    font=ct["font"],
-                )
+                fig2.update_layout(
+                    title="Agent Contribution",
+                    yaxis_title="Delta",
+                    yaxis=dict(gridcolor="#333", tickfont=dict(color="#ccc")),
+                    xaxis=dict(tickfont=dict(color="#ccc")),
+                    template="plotly_dark",
+                    paper_bgcolor="#0e0e0e",
+                    plot_bgcolor="#1a1a1a",
+                    font=dict(color="#e0e0e0"),
+                    height=350)
                 st.plotly_chart(fig2, use_container_width=True)
                 top = max(contrib, key=contrib.get)
                 st.success(f"🔑 **{top}** contributes most (+{contrib[top]} pts)")
 
+            # Export
             st.divider()
             export = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                        "aggregate": {k: {"mean": v["mean"], "std": v["std"], "per_sample": v["per_sample"]} for k, v in agg.items()},
