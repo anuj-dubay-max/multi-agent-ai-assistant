@@ -700,9 +700,7 @@ with tab1:
     col1, col2 = st.columns([1,3])
 
     with col1:
-        st.markdown('<div style="background:#f8f9fa;padding:8px;border-radius:8px;border:2px dashed #ccc">', unsafe_allow_html=True)
         uploaded_file = st.file_uploader("Upload .py file", type=["py", "txt"])
-        st.markdown('</div>', unsafe_allow_html=True)
 
         if uploaded_file:
             st.session_state["cr_code"] = uploaded_file.read().decode("utf-8")
