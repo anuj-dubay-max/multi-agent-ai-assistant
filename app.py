@@ -216,7 +216,8 @@ Return numbered list.""",
         f"Code:\n```\n{code}\n```\nScanner found:\n{tool_summary if tool_summary else 'None'}\n\nCorrectness review:")
 
 def synthesizer(client, sec_review, corr_review, tool_findings):
-    return call_llm(client,
+    return call_llm(
+        client,
         """Combine these reviews into ONE final review.
 
 Rules:
@@ -231,7 +232,7 @@ Format each finding as:
 
 ### [SEVERITY] Title
 **Location:** line X
-**Confidence:** HIGH/MEDIUM/LOW
+**Confidence:** HIGH / MEDIUM / LOW
 **Source:** Security / Correctness / Both
 **Description:** ...
 **Fix:** ```python ... ```
@@ -241,16 +242,18 @@ End with:
 ## Summary
 X critical, Y warnings, Z info.
 Overall Risk: SAFE / NEEDS CHANGES / CRITICAL ISSUES
-"""
-Format each finding as:
-### [SEVERITY] Title
-**Location:** line X
-**Confidence:** HIGH/MEDIUM/LOW
-**Description:** ...
-**Fix:** ```python ... ```
-End with: ## Summary - X critical, Y warnings, Z style. Overall: SAFE/NEEDS CHANGES/CRITICAL ISSUES""",
-        f"Security:\n{sec_review}\n\nCorrectness:\n{corr_review}\n\nTool findings:\n{json.dumps(tool_findings, indent=2) if tool_findings else 'None'}\n\nSynthesize:")
+""",
+        f"""Security Review:
+{sec_review}
 
+Correctness Review:
+{corr_review}
+
+Tool Findings:
+{json.dumps(tool_findings, indent=2) if tool_findings else "None"}
+
+Create final review."""
+    )
 def single_agent_review(client, code):
     return call_llm(client,
         "You are a general software reviewer. Review the code and list major issues only.",
