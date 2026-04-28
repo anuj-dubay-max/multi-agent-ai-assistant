@@ -141,6 +141,29 @@ hr    { border-color: #dddddd !important; }
 h1 { font-size: 2.4rem !important; }
 h2 { font-size: 2rem   !important; }
 h3 { font-size: 1.6rem !important; }
+/* File uploader */
+[data-testid="stFileUploadDropzone"] {
+    background-color: #f8f9fa !important;
+    border: 2px dashed #cccccc !important;
+}
+[data-testid="stFileUploadDropzone"] * {
+    color: #111111 !important;
+}
+
+/* Dark buttons → light */
+[data-testid="baseButton-secondary"],
+button[kind="secondary"] {
+    background-color: #f0f2f6 !important;
+    color: #111111 !important;
+    border: 1px solid #cccccc !important;
+}
+
+/* Code textarea (paste your code box) */
+[data-testid="stTextArea"] textarea,
+.stTextArea textarea {
+    background-color: #f8f9fa !important;
+    color: #111111 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
