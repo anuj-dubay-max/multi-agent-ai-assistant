@@ -80,81 +80,67 @@ if "token_count" not in st.session_state:
 
 st.markdown("""
 <style>
-/* ── FORCE LIGHT THEME ── */
-html, body, [data-testid="stApp"],
+/* ══ FORCE FULL LIGHT THEME ══ */
+html, body,
+[data-testid="stApp"],
 [data-testid="stAppViewContainer"],
-[data-testid="stHeader"] {
+[data-testid="stHeader"],
+[data-testid="stMainBlockContainer"],
+[data-testid="stVerticalBlock"],
+section.main, .main, .block-container {
     background-color: #ffffff !important;
     color: #111111 !important;
 }
-
-/* Main content area */
-[data-testid="stMainBlockContainer"] {
-    background-color: #ffffff !important;
-    padding-top: 2rem !important;
-    max-width: 1200px !important;
-}
-
-/* Sidebar */
 [data-testid="stSidebar"],
-[data-testid="stSidebarContent"] {
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"] {
     background-color: #f0f2f6 !important;
-    color: #111111 !important;
 }
-
-/* All text */
-[data-testid="stSidebar"] * ,
-[data-testid="stMainBlockContainer"] * {
-    color: #111111 !important;
+* { color: #111111 !important; }
+pre, code,
+[data-testid="stCode"] pre,
+[data-testid="stCode"] code,
+.stCodeBlock pre, .stCodeBlock code,
+div[class*="stCode"] pre, div[class*="stCode"] code {
+    background-color: #f4f4f4 !important;
+    color: #222222 !important;
+    border-radius: 8px !important;
 }
-
-/* Inputs, textareas, selectboxes */
-[data-testid="stTextArea"] textarea,
-[data-testid="stTextInput"] input,
-[data-baseweb="select"] * ,
-[data-baseweb="input"] * {
+[data-testid="stCode"],
+.stCodeBlock,
+div[class*="stCode"] {
+    background-color: #f4f4f4 !important;
+}
+textarea, input[type="text"], input[type="password"] {
     background-color: #f8f9fa !important;
     color: #111111 !important;
+    border: 1px solid #cccccc !important;
+}
+[data-baseweb="select"] > div,
+[data-baseweb="popover"],
+[role="listbox"], [role="option"] {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+}
+[data-testid="stFileUploader"],
+[data-testid="stFileUploadDropzone"] {
+    background-color: #f8f9fa !important;
     border-color: #cccccc !important;
 }
-
-/* Tabs */
+[data-baseweb="tab-list"] { background-color: #ffffff !important; }
 button[data-baseweb="tab"] {
     font-size: 1rem !important;
     font-weight: 600 !important;
     background-color: transparent !important;
-    color: #111111 !important;
 }
-[data-baseweb="tab-list"] {
-    background-color: #ffffff !important;
-}
-
-/* Buttons */
-button {
-    border-radius: 10px !important;
-}
-
-/* Code blocks */
-pre {
-    border-radius: 12px !important;
-    background-color: #f4f4f4 !important;
-    color: #111111 !important;
-}
-
-/* Markdown tables */
-table { background-color: #ffffff !important; color: #111111 !important; }
-th { background-color: #f0f2f6 !important; color: #111111 !important; }
-td { color: #111111 !important; }
-
-/* Alerts / info boxes */
-[data-testid="stAlert"] { background-color: #eef2ff !important; }
-
-/* Divider */
-hr { border-color: #dddddd !important; }
-
-h1 {font-size:2.4rem !important;}
-h2 {font-size:2rem !important;}
-h3 {font-size:1.6rem !important;}
+button { border-radius: 10px !important; }
+table { background-color: #ffffff !important; }
+th    { background-color: #f0f2f6 !important; }
+hr    { border-color: #dddddd !important; }
+[data-testid="stMainBlockContainer"] { padding-top: 2rem !important; max-width: 1200px !important; }
+h1 { font-size: 2.4rem !important; }
+h2 { font-size: 2rem   !important; }
+h3 { font-size: 1.6rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -686,10 +672,6 @@ with st.sidebar:
     use_judge = st.checkbox("Judge (Optional)", value=True)
 
     st.divider()
-    st.markdown("### 🎨 Theme")
-    dark_mode = st.toggle("Dark Mode", value=False)
-
-    st.divider()
     tc = st.session_state.get("token_count", {"total": 0, "calls": 0, "errors": 0})
     st.markdown("### 📊 Stats")
     st.caption(f"Calls: {tc['calls']} | Errors: {tc['errors']} | Tokens: {tc['total']:,}")
@@ -724,27 +706,16 @@ with st.sidebar:
 # CHART THEME HELPER  ← NEW
 # ══════════════════════════════════════════════════════════════
 
-def chart_theme(dark):
-    if dark:
-        return dict(
-            template="plotly_dark",
-            paper_bgcolor="#0e0e0e",
-            plot_bgcolor="#1a1a1a",
-            font=dict(color="#e0e0e0"),
-            xaxis=dict(gridcolor="#2a2a2a", tickfont=dict(color="#aaa")),
-            yaxis=dict(gridcolor="#2a2a2a", tickfont=dict(color="#aaa")),
-            legend=dict(bgcolor="#1a1a1a", font=dict(color="#e0e0e0")),
-        )
-    else:
-        return dict(
-            template="plotly_white",
-            paper_bgcolor="#ffffff",
-            plot_bgcolor="#f8f9fa",
-            font=dict(color="#111111"),
-            xaxis=dict(gridcolor="#e0e0e0", tickfont=dict(color="#444")),
-            yaxis=dict(gridcolor="#e0e0e0", tickfont=dict(color="#444")),
-            legend=dict(bgcolor="#ffffff", font=dict(color="#111111")),
-        )
+def chart_theme(_=None):
+    return dict(
+        template="plotly_white",
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#f8f9fa",
+        font=dict(color="#111111"),
+        xaxis=dict(gridcolor="#e0e0e0", tickfont=dict(color="#444")),
+        yaxis=dict(gridcolor="#e0e0e0", tickfont=dict(color="#444")),
+        legend=dict(bgcolor="#ffffff", font=dict(color="#111111")),
+    )
 
 # ══════════════════════════════════════════════════════════════
 # MAIN TABS
@@ -947,7 +918,7 @@ with tab1:
         fig.add_trace(go.Bar(name='Multi-Agent', x=[c.title() for c in cats],
             y=[mf.get(c, 0) for c in cats],
             marker_color=['#ff6666', '#ffcc44', '#6699ff', '#66ddaa']))
-        ct = chart_theme(dark_mode)
+        ct = chart_theme()
         fig.update_layout(barmode='group', title="Findings by Severity",
             yaxis_title="Count", height=350, **ct)
         st.plotly_chart(fig, use_container_width=True)
@@ -1087,7 +1058,7 @@ with tab2:
             st.markdown(header + "\n" + sep + "\n" + row1 + "\n" + row2 + "\n" + "\n".join(rows))
 
             # Aggregate chart
-            ct = chart_theme(dark_mode)
+            ct = chart_theme()
             fig = go.Figure()
             fig.add_trace(go.Bar(x=[f"C{i+1}" for i in range(len(cfgs))],
                 y=[agg[c]["mean"] for c in cfgs], marker_color=colors[:len(cfgs)],
