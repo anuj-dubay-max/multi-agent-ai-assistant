@@ -80,108 +80,27 @@ if "token_count" not in st.session_state:
 
 st.markdown("""
 <style>
-/* ══ FORCE FULL LIGHT THEME ══ */
-html, body,
-[data-testid="stApp"],
-[data-testid="stAppViewContainer"],
-[data-testid="stHeader"],
-[data-testid="stMainBlockContainer"],
-[data-testid="stVerticalBlock"],
-section.main, .main, .block-container {
-    background-color: #ffffff !important;
-    color: #111111 !important;
+html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"],
+[data-testid="stHeader"], [data-testid="stMainBlockContainer"],
+[data-testid="stVerticalBlock"], section.main, .main, .block-container {
+    background-color: #ffffff !important; color: #111111 !important;
 }
-[data-testid="stSidebar"],
-[data-testid="stSidebarContent"],
-[data-testid="stSidebarUserContent"] {
-    background-color: #f0f2f6 !important;
-}
+[data-testid="stSidebar"], [data-testid="stSidebarContent"] { background-color: #f0f2f6 !important; }
 * { color: #111111 !important; }
-pre, code,
-[data-testid="stCode"] pre,
-[data-testid="stCode"] code,
-.stCodeBlock pre, .stCodeBlock code,
-div[class*="stCode"] pre, div[class*="stCode"] code {
-    background-color: #f4f4f4 !important;
-    color: #222222 !important;
-    border-radius: 8px !important;
-}
-[data-testid="stCode"],
-.stCodeBlock,
-div[class*="stCode"] {
-    background-color: #f4f4f4 !important;
-}
-textarea, input[type="text"], input[type="password"] {
-    background-color: #f8f9fa !important;
-    color: #111111 !important;
-    border: 1px solid #cccccc !important;
-}
-[data-baseweb="select"] > div,
-[data-baseweb="popover"],
-[role="listbox"], [role="option"] {
-    background-color: #ffffff !important;
-    color: #111111 !important;
-}
-[data-testid="stFileUploader"],
-[data-testid="stFileUploadDropzone"] {
-    background-color: #f8f9fa !important;
-    border-color: #cccccc !important;
-}
+pre, code, [data-testid="stCode"], .stCodeBlock, div[class*="stCode"] { background-color: #f4f4f4 !important; color: #222222 !important; border-radius: 8px !important; }
+textarea, input[type="text"], input[type="password"] { background-color: #f8f9fa !important; color: #111111 !important; border: 1px solid #cccccc !important; }
+[data-baseweb="select"] > div, [data-baseweb="popover"], [role="listbox"], [role="option"] { background-color: #ffffff !important; }
 [data-baseweb="tab-list"] { background-color: #ffffff !important; }
-button[data-baseweb="tab"] {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    background-color: transparent !important;
-}
+button[data-baseweb="tab"] { font-size: 1rem !important; font-weight: 600 !important; background-color: transparent !important; }
 button { border-radius: 10px !important; }
 table { background-color: #ffffff !important; }
-th    { background-color: #f0f2f6 !important; }
-hr    { border-color: #dddddd !important; }
+th { background-color: #f0f2f6 !important; }
+hr { border-color: #dddddd !important; }
 [data-testid="stMainBlockContainer"] { padding-top: 2rem !important; max-width: 1200px !important; }
 h1 { font-size: 2.4rem !important; }
-h2 { font-size: 2rem   !important; }
+h2 { font-size: 2rem !important; }
 h3 { font-size: 1.6rem !important; }
-/* File uploader */
-[data-testid="stFileUploadDropzone"] {
-    background-color: #f8f9fa !important;
-    border: 2px dashed #cccccc !important;
-}
-[data-testid="stFileUploadDropzone"] * {
-    color: #111111 !important;
-}
-
-/* Dark buttons → light */
-[data-testid="baseButton-secondary"],
-button[kind="secondary"] {
-    background-color: #f0f2f6 !important;
-    color: #111111 !important;
-    border: 1px solid #cccccc !important;
-}
-
-/* Code textarea (paste your code box) */
-[data-testid="stTextArea"] textarea,
-.stTextArea textarea {
-    background-color: #f8f9fa !important;
-    color: #111111 !important;
-}
-/* File uploader text visibility */
-[data-testid="stFileUploader"] span,
-[data-testid="stFileUploader"] small,
-[data-testid="stFileUploader"] p {
-    color: #111111 !important;
-}
-[data-testid="stFileUploader"] label,
-[data-testid="stFileUploader"] div,
-[data-testid="stFileUploader"] span,
-[data-testid="stFileUploader"] small,
-[data-testid="stFileUploader"] p,
-[data-testid="stFileUploadDropzone"] span,
-[data-testid="stFileUploadDropzone"] small,
-[data-testid="stFileUploadDropzone"] p {
-    color: #111111 !important;
-    opacity: 1 !important;
-}
-</style>
+[data-testid="stTextArea"] textarea, .stTextArea textarea { background-color: #f8f9fa !important; }</style>
 """, unsafe_allow_html=True)
 
 
@@ -781,7 +700,9 @@ with tab1:
     col1, col2 = st.columns([1,3])
 
     with col1:
+        st.markdown('<div style="background:#f8f9fa;padding:8px;border-radius:8px;border:2px dashed #ccc">', unsafe_allow_html=True)
         uploaded_file = st.file_uploader("Upload .py file", type=["py", "txt"])
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if uploaded_file:
             st.session_state["cr_code"] = uploaded_file.read().decode("utf-8")
