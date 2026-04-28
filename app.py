@@ -178,23 +178,70 @@ def security_reviewer(client, code, tool_findings):
     tool_summary = "\n".join(f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings if f['type'] == 'security')
     return call_llm(client,
-        """You are a Security Reviewer. Find ONLY real vulnerabilities in the code.
-For each: line number, severity (CRITICAL/WARNING/INFO), description, specific fix with code.
-Do NOT hallucinate issues. Return numbered list.""",
+        """You are a Security Reviewer.
+
+Find ONLY real OWASP/security vulnerabilities in the code.
+Prioritize exploitability and impact.
+Ignore style, readability, and non-security issues.
+
+For each finding provide:
+1. line number
+2. severity (CRITICAL/WARNING/INFO)
+3. vulnerability type
+4. short explanation
+5. specific secure fix with code
+
+Do NOT hallucinate issues.
+Return numbered list.""",
         f"Code:\n```\n{code}\n```\nScanner found:\n{tool_summary if tool_summary else 'None'}\n\nSecurity review:")
 
 def correctness_reviewer(client, code, tool_findings):
     tool_summary = "\n".join(f"- [{f['severity'].upper()}] {f['location']}: {f['message']}"
         for f in tool_findings if f['type'] in ('bug_risk', 'complexity', 'syntax'))
     return call_llm(client,
-        """You are a Correctness Reviewer. Find logic bugs, type errors, edge cases.
-For each: line number, severity, what is wrong, fix with code.
-Do NOT hallucinate. Return numbered list.""",
+        """You are a Correctness Reviewer.
+
+Find ONLY runtime bugs, logic flaws, edge cases, data errors, and maintainability risks.
+Ignore security vulnerabilities and style-only comments.
+
+For each finding provide:
+1. line number
+2. severity
+3. what is wrong
+4. failure scenario
+5. exact fix with code
+
+Do NOT hallucinate issues.
+Return numbered list.""",
         f"Code:\n```\n{code}\n```\nScanner found:\n{tool_summary if tool_summary else 'None'}\n\nCorrectness review:")
 
 def synthesizer(client, sec_review, corr_review, tool_findings):
     return call_llm(client,
-        """Combine these reviews into ONE review. Deduplicate, prioritize CRITICAL first.
+        """Combine these reviews into ONE final review.
+
+Rules:
+- Keep unique findings from BOTH Security and Correctness reviewers.
+- Remove only true duplicates.
+- Do NOT drop minority findings unless clearly false.
+- Prioritize CRITICAL first, then WARNING, then INFO.
+- Preserve specific fixes.
+- Prefer precise technical wording over generic summaries.
+
+Format each finding as:
+
+### [SEVERITY] Title
+**Location:** line X
+**Confidence:** HIGH/MEDIUM/LOW
+**Source:** Security / Correctness / Both
+**Description:** ...
+**Fix:** ```python ... ```
+
+End with:
+
+## Summary
+X critical, Y warnings, Z info.
+Overall Risk: SAFE / NEEDS CHANGES / CRITICAL ISSUES
+"""
 Format each finding as:
 ### [SEVERITY] Title
 **Location:** line X
@@ -206,7 +253,7 @@ End with: ## Summary - X critical, Y warnings, Z style. Overall: SAFE/NEEDS CHAN
 
 def single_agent_review(client, code):
     return call_llm(client,
-        "You are an expert code reviewer. Review this Python code thoroughly. Find bugs, security issues, and style issues. Give findings with line numbers and specific fixes.",
+        "You are a general software reviewer. Review the code and list major issues only.",
         f"Review this code:\n```\n{code}\n```")
 
 def fix_agent(client, code, review):
