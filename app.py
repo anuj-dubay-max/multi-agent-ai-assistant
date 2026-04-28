@@ -170,6 +170,17 @@ button[kind="secondary"] {
 [data-testid="stFileUploader"] p {
     color: #111111 !important;
 }
+[data-testid="stFileUploader"] label,
+[data-testid="stFileUploader"] div,
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] p,
+[data-testid="stFileUploadDropzone"] span,
+[data-testid="stFileUploadDropzone"] small,
+[data-testid="stFileUploadDropzone"] p {
+    color: #111111 !important;
+    opacity: 1 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
