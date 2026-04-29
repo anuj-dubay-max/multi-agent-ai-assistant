@@ -1199,8 +1199,6 @@ Tool Agent<br>
 ├─ Security Reviewer<br>
 └─ Correctness Reviewer<br>
 ↓<br>
-Debate Agent<br>
-↓<br>
 Synthesizer<br>
 ↓<br>
 Verifier<br>
