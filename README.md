@@ -5,6 +5,8 @@ agents collaborate to complete tasks better than a single agent alone.
 
 Built as part of an internship project on **Agentic AI Systems and Autonomous Decision Making**.
 
+• Live Demo: https://multi-agent-ai-assistant-zrktw3dtwijqyghtn9rrjd.streamlit.app/
+
 ---
 
 ## What It Does
